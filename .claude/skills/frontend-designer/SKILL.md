@@ -21,8 +21,9 @@ You are a senior frontend engineer working inside the Flask + Jinja + vanilla-JS
 - `--accent-gold: #F5A623` — brand accent (CTAs, headings, icons)
 - `--accent-gold-hover: #d9911a` — hover state for gold
 - `--info-card-bg: #1a1a1a`, `--info-card-border: rgba(255,255,255,.10)`, `--contact-bg: #1a1a1a`
+- `--admin-hero-text-soft: rgba(13,13,13,.78)` — soft dark text on the gold gradient hero (only place dark-on-gold copy lives)
 
-**Hard rule:** No new hex literal in any rule. If a tone is genuinely missing, add a variable to `:root` first, then use `var(--…)` everywhere.
+**Hard rule:** No new hex literal in any rule. If a tone is genuinely missing — *even an `rgba()` tweak of an existing color* — add a variable to `:root` first, then use `var(--…)` everywhere. This applies to `.admin-*` and `.dash-*` rules too: do not inline `rgba(13,13,13,.78)` in a rule, declare a variable.
 
 ### Spacing / sizing
 - `--topbar-h: 40px`, `--nav-h: 64px` — used for `min-height: calc(100vh - var(--topbar-h) - var(--nav-h))` on full-page sections
@@ -71,10 +72,12 @@ theroyalgym/
 - No Bootstrap, no Tailwind, no React/Vue. Vanilla CSS, vanilla JS, Jinja
 - No CSS-in-JS, no inline `style=` (the codebase explicitly removed inline styles in the security pass)
 - No inline `onclick` (unlocks strict CSP). Bind events in `main.js`
-- SVGs inline, decorative SVGs `aria-hidden="true"`, color via `currentColor` so CSS controls it
+- SVGs inline, decorative SVGs `aria-hidden="true"`, color via `currentColor` so CSS controls it. Icon source: [Tabler Icons](https://tabler.io/icons) (MIT) — match its monoline stroke style across the app
 - Forms: every POST has a CSRF input — `<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">`
 - `maxlength` on every input matched to server-side validation in `app.py`
 - Server-side rendering only — no client-side templating
+- Placeholder/coming-soon destinations render as `aria-disabled="true"` anchors (`href="#"`) or `<button type="button" disabled aria-disabled="true">` — never as POST routes that flash "Coming soon" and redirect. Keeps CSRF surface and flash noise minimal
+- When the same set of labels appears in multiple page regions (e.g., a top tab bar and a bottom quick-links grid), drive both from a single Python list in `app.py` (`ADMIN_NAV_ITEMS`) passed through `render_template`. Never hardcode the labels twice in the template — they will drift
 
 ### Existing component patterns (reuse them)
 - **Navbar / top-bar** — `base.html:14–55`, styled in `style.css:65–230`
@@ -87,6 +90,10 @@ theroyalgym/
 - **Contact / form pattern** — `landing.html:268–337` — icon-left-of-input wrap (`.input-wrap` + `.input-icon`)
 - **Auth card** — `login.html:9–53` — single-column centered card
 - **Dashboard panel** — `admin_dashboard.html`, `member_dashboard.html`, `dashboard.css` — `.dash-panel` + table or grid
+- **Admin tab bar** — `admin_dashboard.html`, `dashboard.css` `.admin-tabs` / `.admin-tab` — sticky pill-style nav under the global navbar (`top: var(--nav-h)`), gold underline via `box-shadow: inset 0 -2px 0 0 var(--accent-gold)` (no `border-bottom`, to avoid layout shift). `.is-active` for the current page; `aria-disabled="true"` for placeholder destinations
+- **Gold gradient hero banner** — `admin_dashboard.html`, `dashboard.css` `.admin-hero` — `linear-gradient(135deg, var(--accent-gold), var(--accent-gold-hover))` with dark text (`var(--body-bg)` for headings, `var(--admin-hero-text-soft)` for subtitle) and white/ghost action buttons. Stacks vertically below 1024px
+- **KPI tile grid** — `admin_dashboard.html`, `dashboard.css` `.dash-tiles` / `.dash-tile` — 4-up → 2-up → 1-up grid of `<article>` tiles with inline-SVG icon + label + large value + ghost details link. Hover lifts via `translateY(-2px) + var(--shadow-md)`
+- **Quick-links grid** — `dashboard.css` `.dash-quicklinks` / `.dash-quicklink` — 5-up → 3-up → 2-up grid of label cards. Mirrors the admin tab bar so the user can jump between sections from the bottom of the page
 - **Error page** — `templates/errors/*.html` — minimal centered card on the auth-section background
 
 When asked to build something new, scan these patterns first — most requests can be assembled from existing classes.
@@ -121,6 +128,8 @@ Write the semantic HTML first:
 - Group related CSS under a `/* ===== SECTION NAME ===== */` divider comment to match the file's existing rhythm
 - Add a `@media (max-width: 1024px)` and `@media (max-width: 768px)` block for any multi-column layout. Single-column at the narrowest breakpoint, centered content
 - Hover/focus states on every interactive element, transition via `var(--t)`
+- For underline-on-hover/active states, use `box-shadow: inset 0 -2px 0 0 var(--accent-gold)` rather than `border-bottom` — borders cause a 2px layout shift on hover/active toggling, the inset shadow does not
+- Sticky elements that sit below the global navbar use `top: var(--nav-h)` (and `top: calc(var(--topbar-h) + var(--nav-h))` if the top-bar is also visible) — never a hardcoded pixel value
 
 ### Phase 5 — Verify in browser
 A successful task is one you have actually viewed:
@@ -142,7 +151,7 @@ If you can't view the page (no browser available), say so explicitly — do not 
 
 ## Anti-patterns to refuse (push back politely)
 - Adding Bootstrap, Tailwind, jQuery, or any frontend framework
-- Hardcoding hex colors in a rule (always go through a CSS variable)
+- Hardcoding hex colors in a rule (always go through a CSS variable). Inline `rgba()` literals count too — declare a `--…` variable in `:root` first
 - Hardcoding URLs in templates (always `url_for(...)`)
 - Putting JavaScript inside `onclick` attributes
 - Using `<div>`s where a semantic element is correct (`<button>`, `<nav>`, `<section>`, `<address>`, `<article>`)
@@ -150,6 +159,10 @@ If you can't view the page (no browser available), say so explicitly — do not 
 - Skipping heading levels (`<h1>` then jumping to `<h3>`)
 - Adding new fonts or external resources without updating CSP in `app.py:set_security_headers`
 - Building a dashboard widget that hits the DB directly from the route — DB calls live in `database/db.py`
+- Hardcoding the same nav/section label list in two places in a template — drive it from one Python list in `app.py`
+- Adding placeholder POST routes that flash "Coming soon" — render the affordance as a disabled button or `aria-disabled` anchor instead
+- Using `border-bottom` for hover/active underlines on tabs/links — causes a layout shift; use `box-shadow: inset 0 -2px 0 0 …`
+- Hardcoding pixel offsets (`top: 64px`) for sticky elements — use `var(--nav-h)` / `var(--topbar-h)`
 
 ## Output expectations
 
