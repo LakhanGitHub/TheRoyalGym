@@ -4,7 +4,8 @@ import hmac
 import secrets
 import sqlite3
 import logging
-from datetime import timedelta
+import calendar
+from datetime import timedelta, date
 from functools import wraps
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
@@ -13,17 +14,31 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from database.db import (
     init_db, seed_db,
     get_member_by_id, get_all_members,
-    get_member_by_email, create_enquiry,
+    get_member_by_email, get_member_by_login, create_enquiry,
     count_members_registered_today,
     update_member_role, update_member_password, delete_member, count_admins,
     get_all_plans, get_plan_by_id, create_plan, update_plan, delete_plan,
-    is_valid_email, is_valid_mobile,
+    create_member,
+    is_valid_email, is_valid_mobile, is_valid_username,
 )
 
 PLAN_DURATIONS = {'Monthly': 1, 'Quarterly': 3, 'Yearly': 12}
+GENDER_OPTIONS = ('Male', 'Female', 'Other')
+
+
+def _add_months(start_iso, months):
+    """Add `months` to an ISO YYYY-MM-DD string; clamps to month-end (Jan 31 + 1 month -> Feb 28/29)."""
+    start = date.fromisoformat(start_iso)
+    total = (start.month - 1) + int(months)
+    new_year = start.year + total // 12
+    new_month = total % 12 + 1
+    last_day = calendar.monthrange(new_year, new_month)[1]
+    new_day = min(start.day, last_day)
+    return date(new_year, new_month, new_day).isoformat()
+
 
 ADMIN_NAV_ITEMS = [
-    {'label': 'Members',       'endpoint': None,             'desc': 'Add, edit and search members.',         'color': 'cyan'},
+    {'label': 'Members',       'endpoint': 'admin_members',  'desc': 'Add, edit and search members.',         'color': 'cyan'},
     {'label': 'Plans',         'endpoint': 'admin_plans',    'desc': 'Membership plans and pricing.',         'color': 'pink'},
     {'label': 'Trainers',      'endpoint': None,             'desc': 'Roster, schedules and payouts.',        'color': 'purple'},
     {'label': 'Payments',      'endpoint': None,             'desc': 'Paid and pending invoices.',            'color': 'orange'},
@@ -168,7 +183,7 @@ def login():
             return render_template('login.html', email=email_value)
 
         try:
-            user = get_member_by_email(email)
+            user = get_member_by_login(email)
             if user and check_password_hash(user['password_hash'], password):
                 user_id = user['id']
                 user_name = user['name']
@@ -459,6 +474,147 @@ def admin_plans_delete(plan_id):
         app.logger.exception('Plan delete failed')
         flash('Action failed. Please try again.', 'error')
     return redirect(url_for('admin_plans'))
+
+
+@app.route('/admin/members')
+@admin_required
+def admin_members():
+    members = get_all_members(role='user')
+    return render_template(
+        'admin_members.html',
+        nav_items=ADMIN_NAV_ITEMS,
+        members=members,
+        active_tab='Members',
+    )
+
+
+def _empty_member_prefill():
+    return {
+        'username': '', 'name': '', 'mobile': '', 'age': '',
+        'gender': '', 'join_date': date.today().isoformat(),
+        'address': '', 'plan_id': '',
+    }
+
+
+def _render_member_form(prefill, mode='new'):
+    return render_template(
+        'admin_member_new.html',
+        nav_items=ADMIN_NAV_ITEMS,
+        plans=get_all_plans(),
+        gender_options=GENDER_OPTIONS,
+        today_iso=date.today().isoformat(),
+        prefill=prefill,
+        active_tab='Members',
+        mode=mode,
+    )
+
+
+@app.route('/admin/members/new', methods=['GET', 'POST'])
+@admin_required
+def admin_members_new():
+    if request.method == 'GET':
+        return _render_member_form(_empty_member_prefill())
+
+    if not _valid_csrf(request.form.get('csrf_token')):
+        abort(403)
+
+    f = request.form
+    prefill = {
+        'username':  f.get('username', '').strip(),
+        'name':      f.get('name', '').strip(),
+        'mobile':    f.get('mobile', '').strip(),
+        'age':       f.get('age', '').strip(),
+        'gender':    f.get('gender', '').strip(),
+        'join_date': f.get('join_date', '').strip(),
+        'address':   f.get('address', '').strip(),
+        'plan_id':   f.get('plan_id', '').strip(),
+    }
+    password = f.get('password', '')
+
+    # Required fields
+    if not prefill['username'] or not is_valid_username(prefill['username']):
+        flash('Username is required (3-30 chars, letters/digits/underscore/hyphen).', 'error')
+        return _render_member_form(prefill)
+    if not password or len(password) < 6 or len(password) > 200:
+        flash('Password is required (6-200 characters).', 'error')
+        return _render_member_form(prefill)
+    if not prefill['name'] or len(prefill['name']) < 2 or len(prefill['name']) > 100:
+        flash('Full name is required (2-100 characters).', 'error')
+        return _render_member_form(prefill)
+
+    # Optional fields
+    mobile = prefill['mobile'] or None
+    if mobile and not is_valid_mobile(mobile):
+        flash('Mobile number is invalid.', 'error')
+        return _render_member_form(prefill)
+
+    age = None
+    if prefill['age']:
+        try:
+            age = int(prefill['age'])
+            if age < 5 or age > 120:
+                raise ValueError()
+        except ValueError:
+            flash('Age must be a whole number between 5 and 120.', 'error')
+            return _render_member_form(prefill)
+
+    gender = prefill['gender'] or None
+    if gender and gender not in GENDER_OPTIONS:
+        flash('Gender selection is invalid.', 'error')
+        return _render_member_form(prefill)
+
+    join_date = prefill['join_date'] or None
+    if join_date:
+        try:
+            date.fromisoformat(join_date)
+        except ValueError:
+            flash('Join date is invalid.', 'error')
+            return _render_member_form(prefill)
+
+    address = prefill['address'] or None
+    if address and len(address) > 500:
+        flash('Address is too long (max 500 characters).', 'error')
+        return _render_member_form(prefill)
+
+    plan_id = None
+    plan_expire_date = None
+    if prefill['plan_id']:
+        try:
+            plan_id = int(prefill['plan_id'])
+        except ValueError:
+            flash('Selected plan is invalid.', 'error')
+            return _render_member_form(prefill)
+        plan = get_plan_by_id(plan_id)
+        if not plan:
+            flash('Selected plan no longer exists.', 'error')
+            return _render_member_form(prefill)
+        if join_date:
+            plan_expire_date = _add_months(join_date, plan['duration_months'])
+
+    synth_email = f"{prefill['username'].lower()}@member.local"
+    try:
+        create_member(
+            name=prefill['name'],
+            email=synth_email,
+            password_hash=generate_password_hash(password),
+            username=prefill['username'],
+            mobile=mobile,
+            age=age,
+            gender=gender,
+            join_date=join_date,
+            address=address,
+            plan_id=plan_id,
+            plan_expire_date=plan_expire_date,
+        )
+        flash(f"Member \"{prefill['name']}\" created.", 'success')
+        return redirect(url_for('admin_members'))
+    except sqlite3.IntegrityError:
+        flash('That username (or its synthesised email) is already taken. Try a different username.', 'error')
+        return _render_member_form(prefill)
+    except sqlite3.Error:
+        app.logger.exception('Member create failed')
+        flash('Action failed. Please try again.', 'error')
+        return _render_member_form(prefill)
 
 
 @app.route('/member/dashboard')

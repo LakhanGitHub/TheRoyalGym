@@ -53,6 +53,25 @@ def init_db():
         ''')
         if not _column_exists(conn, 'members', 'role'):
             conn.execute("ALTER TABLE members ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
+
+        for col, ddl in (
+            ('username',         'ALTER TABLE members ADD COLUMN username TEXT'),
+            ('mobile',           'ALTER TABLE members ADD COLUMN mobile TEXT'),
+            ('age',              'ALTER TABLE members ADD COLUMN age INTEGER'),
+            ('gender',           'ALTER TABLE members ADD COLUMN gender TEXT'),
+            ('address',          'ALTER TABLE members ADD COLUMN address TEXT'),
+            ('join_date',        'ALTER TABLE members ADD COLUMN join_date TEXT'),
+            ('plan_id',          'ALTER TABLE members ADD COLUMN plan_id INTEGER REFERENCES membership_plans(id) ON DELETE SET NULL'),
+            ('plan_expire_date', 'ALTER TABLE members ADD COLUMN plan_expire_date TEXT'),
+            ('trainer_id',       'ALTER TABLE members ADD COLUMN trainer_id INTEGER'),
+        ):
+            if not _column_exists(conn, 'members', col):
+                conn.execute(ddl)
+
+        conn.execute(
+            'CREATE UNIQUE INDEX IF NOT EXISTS idx_members_username '
+            'ON members(username) WHERE username IS NOT NULL'
+        )
         conn.commit()
     finally:
         conn.close()
@@ -100,11 +119,22 @@ def seed_db():
         conn.close()
 
 
+_MEMBER_COLUMNS = (
+    'm.id, m.name, m.email, m.username, m.mobile, m.age, m.gender, '
+    'm.address, m.join_date, m.plan_id, m.plan_expire_date, m.trainer_id, '
+    'm.role, m.created_at, '
+    'p.name AS plan_name, p.duration_months AS plan_duration'
+)
+
+
 def get_member_by_id(user_id):
     conn = get_db()
     try:
         return conn.execute(
-            'SELECT id, name, email, role, created_at FROM members WHERE id = ?', (user_id,)
+            f'SELECT {_MEMBER_COLUMNS} FROM members m '
+            'LEFT JOIN membership_plans p ON p.id = m.plan_id '
+            'WHERE m.id = ?',
+            (user_id,)
         ).fetchone()
     finally:
         conn.close()
@@ -121,12 +151,55 @@ def get_member_by_email(email):
         conn.close()
 
 
-def get_all_members():
+def get_member_by_login(value):
+    """Look up a member by either email or username (case-insensitive)."""
     conn = get_db()
     try:
+        v = value.strip().lower()
         return conn.execute(
-            'SELECT id, name, email, role, created_at FROM members ORDER BY created_at DESC'
-        ).fetchall()
+            'SELECT id, name, email, password_hash, role, created_at '
+            'FROM members WHERE email = ? OR username = ? LIMIT 1',
+            (v, v)
+        ).fetchone()
+    finally:
+        conn.close()
+
+
+def get_all_members(role=None):
+    sql = (
+        f'SELECT {_MEMBER_COLUMNS} FROM members m '
+        'LEFT JOIN membership_plans p ON p.id = m.plan_id'
+    )
+    params = ()
+    if role is not None:
+        sql += ' WHERE m.role = ?'
+        params = (role,)
+    sql += ' ORDER BY m.created_at DESC'
+
+    conn = get_db()
+    try:
+        return conn.execute(sql, params).fetchall()
+    finally:
+        conn.close()
+
+
+def create_member(name, email, password_hash, username, mobile, age,
+                  gender, join_date, address, plan_id, plan_expire_date,
+                  trainer_id=None):
+    conn = get_db()
+    try:
+        cur = conn.execute(
+            'INSERT INTO members ('
+            'name, email, password_hash, role, username, mobile, age, '
+            'gender, address, join_date, plan_id, plan_expire_date, trainer_id'
+            ') VALUES (?, ?, ?, "user", ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            (name, email.lower(), password_hash,
+             username.lower() if username else None,
+             mobile, age, gender, address, join_date,
+             plan_id, plan_expire_date, trainer_id)
+        )
+        conn.commit()
+        return cur.lastrowid
     finally:
         conn.close()
 
@@ -261,6 +334,7 @@ def delete_plan(plan_id):
 
 _EMAIL_RE = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
 _MOBILE_RE = re.compile(r'^[\d\s+()\-]{7,20}$')
+_USERNAME_RE = re.compile(r'^[A-Za-z0-9_-]{3,30}$')
 
 
 def is_valid_email(value):
@@ -269,3 +343,7 @@ def is_valid_email(value):
 
 def is_valid_mobile(value):
     return bool(_MOBILE_RE.match(value))
+
+
+def is_valid_username(value):
+    return bool(_USERNAME_RE.match(value))

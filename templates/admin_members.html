@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Members &mdash; The Royal Gym{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="dash-section">
+    <div class="dash-container">
+
+        {% include "_admin_tabs.html" %}
+
+        <section class="dash-panel plans-panel">
+            <header class="plans-header">
+                <div class="plans-heading">
+                    <span class="plans-crown" aria-hidden="true">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            <path d="M21 21v-2a4 4 0 0 0 -3 -3.85"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <h1 class="plans-title">Members</h1>
+                        <p class="plans-subtitle">Manage gym members, plans, and profiles.</p>
+                    </div>
+                </div>
+                <a href="{{ url_for('admin_members_new') }}" class="plans-add-btn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M12 5v14"/>
+                        <path d="M5 12h14"/>
+                    </svg>
+                    Add Member
+                </a>
+            </header>
+
+            <div class="dash-table-wrap">
+                <table class="dash-table plans-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Full Name</th>
+                            <th>Username</th>
+                            <th>Mobile</th>
+                            <th>Plan</th>
+                            <th>Join Date</th>
+                            <th>Plan Expiry</th>
+                            <th class="plans-th-actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in members %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <div class="plan-name">
+                                    <strong>{{ m.name }}</strong>
+                                    <span class="plan-tag" aria-hidden="true">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="9" cy="7" r="4"/>
+                                            <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
+                                        </svg>
+                                        Member
+                                    </span>
+                                </div>
+                            </td>
+                            <td>{% if m.username %}@{{ m.username }}{% else %}&mdash;{% endif %}</td>
+                            <td>{{ m.mobile or '—' }}</td>
+                            <td>
+                                {% if m.plan_name %}
+                                <span class="role-pill role-pill-user">{{ m.plan_name }}</span>
+                                {% else %}
+                                &mdash;
+                                {% endif %}
+                            </td>
+                            <td>{{ m.join_date or '—' }}</td>
+                            <td>{{ m.plan_expire_date or '—' }}</td>
+                            <td>
+                                <div class="user-actions">
+                                    <button type="button" class="user-action-btn user-action-btn-warning" disabled aria-disabled="true">Edit</button>
+                                    <button type="button" class="user-action-btn user-action-btn-danger" disabled aria-disabled="true">Delete</button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="dash-empty">No members yet. Click <strong>+ Add Member</strong> to register one.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </div>
+</section>
+{% endblock %}

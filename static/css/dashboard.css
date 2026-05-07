@@ -816,3 +816,191 @@
     .plan-form-actions .user-action-btn,
     .plan-form-actions .plans-add-btn { justify-content: center; text-align: center; }
 }
+
+/* =========================================================
+   Add Member form
+   ========================================================= */
+
+.member-form {
+    display: grid;
+    gap: 20px;
+    padding: 24px 26px 26px;
+}
+
+.member-form-section {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+    padding: 18px 22px 20px;
+    margin: 0;
+}
+
+.member-form-section-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 0;
+    margin-bottom: 14px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.member-form-section-icon {
+    color: var(--accent-gold);
+    line-height: 0;
+}
+
+.member-form-section-heading {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.98rem;
+}
+
+.member-form-section-sub {
+    flex-basis: 100%;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 400;
+    margin-top: -4px;
+}
+
+.member-form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px 18px;
+}
+
+.member-form-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.member-field {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+.member-field-wide { grid-column: 1 / -1; }
+
+@media (min-width: 640px) {
+    .member-form-grid .member-field-wide { grid-column: span 2; }
+    .member-form-grid-2 .member-field-wide { grid-column: 1 / -1; }
+}
+@media (min-width: 1024px) {
+    .member-form-grid .member-field-wide { grid-column: span 1; }
+    .member-form-grid .member-field-wide:first-child { grid-column: 1 / -1; }
+    .member-form-grid .member-field-wide:last-child { grid-column: span 2; }
+}
+
+.member-field-label {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.member-required {
+    color: var(--danger);
+    font-weight: 700;
+}
+
+.member-input-wrap {
+    position: relative;
+    display: block;
+}
+.member-input-wrap-textarea { display: block; }
+
+.member-input-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 0;
+    pointer-events: none;
+}
+.member-input-wrap-textarea .member-input-icon {
+    top: 14px;
+    transform: none;
+}
+
+.member-input {
+    width: 100%;
+    padding: 10px 12px 10px 36px;
+    border-radius: var(--radius-sm);
+    background: var(--body-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-size: 0.875rem;
+    transition: var(--t);
+}
+.member-input::placeholder { color: var(--text-muted); }
+.member-input:focus {
+    outline: none;
+    border-color: var(--accent-gold);
+}
+.member-input[disabled] {
+    cursor: not-allowed;
+    opacity: .55;
+}
+
+.member-input-textarea {
+    resize: vertical;
+    min-height: 56px;
+    padding-top: 10px;
+}
+
+.member-input-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--text-secondary) 50%),
+                      linear-gradient(135deg, var(--text-secondary) 50%, transparent 50%);
+    background-position: calc(100% - 18px) center, calc(100% - 13px) center;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 32px;
+    cursor: pointer;
+}
+.member-input-select option {
+    background: var(--surface);
+    color: var(--text-primary);
+}
+
+.member-form-hint {
+    margin-top: 10px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.member-form-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding-top: 4px;
+}
+.member-form-actions .plans-add-btn {
+    padding: 10px 22px;
+    gap: 8px;
+}
+
+.member-form-note {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .member-form { padding: 18px 16px 20px; }
+    .member-form-section { padding: 16px 14px 18px; }
+    .member-form-grid,
+    .member-form-grid-2 { grid-template-columns: 1fr; }
+    .member-form-actions { flex-direction: column; align-items: stretch; }
+    .member-form-actions .plans-add-btn,
+    .member-form-actions .user-action-btn { justify-content: center; text-align: center; }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+    .member-form-grid { grid-template-columns: repeat(2, 1fr); }
+}

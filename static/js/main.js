@@ -128,9 +128,8 @@ if (loginForm) {
         const email    = loginForm.querySelector('[name="email"]');
         const password = loginForm.querySelector('[name="password"]');
 
-        if (!email.value.trim())    { showError(email, 'Email address is required.'); ok = false; }
-        else if (!validateEmail(email.value.trim())) { showError(email, 'Please enter a valid email.'); ok = false; }
-        if (!password.value)        { showError(password, 'Password is required.'); ok = false; }
+        if (!email.value.trim()) { showError(email, 'Email or username is required.'); ok = false; }
+        if (!password.value)     { showError(password, 'Password is required.'); ok = false; }
 
         if (!ok) e.preventDefault();
     });
