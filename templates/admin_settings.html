@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Admin Settings &mdash; The Royal Gym{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="dash-section">
+    <div class="dash-container">
+
+        {% include "_admin_tabs.html" %}
+
+        <header class="dash-header">
+            <h1>User Management</h1>
+            <p>Promote or demote roles, reset passwords, and remove accounts.</p>
+        </header>
+
+        <section class="dash-panel">
+            <div class="dash-panel-header">
+                <h2>All users</h2>
+            </div>
+
+            <div class="dash-table-wrap">
+                <table class="dash-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Joined</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                        {% set is_self = u.id == current_user_id %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ u.name }}</strong>{% if is_self %} <span class="user-self-tag">you</span>{% endif %}</td>
+                            <td>{{ u.email }}</td>
+                            <td>
+                                <span class="role-pill role-pill-{{ 'admin' if u.role == 'admin' else 'user' }}">
+                                    {{ u.role }}
+                                </span>
+                            </td>
+                            <td>{{ u.created_at }}</td>
+                            <td>
+                                <div class="user-actions">
+                                    {% if is_self %}
+                                    <button class="user-action-btn" disabled aria-disabled="true">{{ 'Demote to user' if u.role == 'admin' else 'Make admin' }}</button>
+                                    <button class="user-action-btn" disabled aria-disabled="true">Reset password</button>
+                                    <button class="user-action-btn user-action-btn-danger" disabled aria-disabled="true">Delete</button>
+                                    {% else %}
+                                    <form method="post"
+                                          action="{{ url_for('admin_settings_role', user_id=u.id) }}"
+                                          data-confirm="{{ ('Demote ' ~ u.name ~ ' to user?') if u.role == 'admin' else ('Promote ' ~ u.name ~ ' to admin?') }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="user-action-btn">{{ 'Demote to user' if u.role == 'admin' else 'Make admin' }}</button>
+                                    </form>
+
+                                    <details class="user-pw-details">
+                                        <summary>Reset password</summary>
+                                        <form method="post"
+                                              action="{{ url_for('admin_settings_password', user_id=u.id) }}"
+                                              class="user-pw-form">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <label class="user-pw-label">
+                                                <span>New password</span>
+                                                <input class="user-pw-input" type="password" name="new_password" minlength="6" maxlength="200" required autocomplete="new-password">
+                                            </label>
+                                            <label class="user-pw-label">
+                                                <span>Confirm password</span>
+                                                <input class="user-pw-input" type="password" name="confirm_password" minlength="6" maxlength="200" required autocomplete="new-password">
+                                            </label>
+                                            <button type="submit" class="user-action-btn">Save new password</button>
+                                        </form>
+                                    </details>
+
+                                    <form method="post"
+                                          action="{{ url_for('admin_settings_delete', user_id=u.id) }}"
+                                          data-confirm="Delete {{ u.name }} permanently? This cannot be undone.">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="user-action-btn user-action-btn-danger">Delete</button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="dash-empty">No users found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </div>
+</section>
+{% endblock %}

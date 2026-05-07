@@ -18,6 +18,10 @@
     --accent-gold:        #F5A623;
     --accent-gold-hover:  #d9911a;
 
+    /* Danger accent (delete buttons, destructive affordances) */
+    --danger:             #c0392b;
+    --danger-hover:       #a3301f;
+
     /* Social brand colors (placeholders for footer social icons) */
     --brand-whatsapp:       #25D366;
     --brand-youtube:        #FF0000;
