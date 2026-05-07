@@ -12,10 +12,16 @@ from werkzeug.security import check_password_hash
 
 from database.db import (
     init_db, seed_db,
-    get_member_by_id, get_all_members, get_all_enquiries,
+    get_member_by_id, get_all_members,
     get_member_by_email, create_enquiry,
+    count_members_registered_today,
     is_valid_email, is_valid_mobile,
 )
+
+ADMIN_NAV_ITEMS = [
+    'Members', 'Plans', 'Trainers', 'Payments', 'Attendance',
+    'Diet', 'Equipment', 'Enquiries', 'Workout Plans', 'Feedback',
+]
 
 IS_PRODUCTION = os.environ.get('FLASK_ENV', '').lower() == 'production'
 
@@ -186,9 +192,19 @@ def terms():
 @app.route('/admin/dashboard')
 @admin_required
 def admin_dashboard():
-    members = get_all_members()
-    enquiries = get_all_enquiries()
-    return render_template('admin_dashboard.html', members=members, enquiries=enquiries)
+    metrics = {
+        'total_members':         len(get_all_members()),
+        'today_registrations':   count_members_registered_today(),
+        'men':                   0,
+        'women':                 0,
+        'active_membership':     0,
+        'subscription_expiring': 0,
+    }
+    return render_template(
+        'admin_dashboard.html',
+        nav_items=ADMIN_NAV_ITEMS,
+        metrics=metrics,
+    )
 
 
 @app.route('/member/dashboard')

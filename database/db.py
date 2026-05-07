@@ -107,6 +107,17 @@ def get_all_members():
         conn.close()
 
 
+def count_members_registered_today():
+    conn = get_db()
+    try:
+        row = conn.execute(
+            "SELECT COUNT(*) AS c FROM members WHERE date(created_at) = date('now', 'localtime')"
+        ).fetchone()
+        return row['c'] if row else 0
+    finally:
+        conn.close()
+
+
 def get_all_enquiries():
     conn = get_db()
     try:

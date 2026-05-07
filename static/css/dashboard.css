@@ -168,6 +168,329 @@
     font-size: 0.875rem;
 }
 
+/* =========================================================
+   Admin dashboard — tab bar, hero, tile grid, quick links
+   (visual redesign per spec 02)
+   ========================================================= */
+
+/* Admin tab bar */
+.admin-tabs {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 8px 4px;
+    margin-bottom: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    list-style: none;
+}
+.admin-tabs::-webkit-scrollbar { height: 6px; }
+.admin-tabs::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+.admin-tab {
+    display: inline-block;
+    padding: 9px 16px;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: var(--t);
+}
+.admin-tab:hover {
+    color: var(--accent-gold);
+    box-shadow: inset 0 -2px 0 0 var(--accent-gold);
+}
+.admin-tab.is-active {
+    color: var(--accent-gold);
+    background: var(--surface-2);
+    box-shadow: inset 0 -2px 0 0 var(--accent-gold);
+}
+.admin-tab[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: .85;
+}
+.admin-tab[aria-disabled="true"]:hover {
+    box-shadow: none;
+    color: var(--text-secondary);
+}
+
+/* Admin hero (Overview & Controls) */
+.admin-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 32px 36px;
+    margin-bottom: 28px;
+    border-radius: var(--radius-lg);
+    background: var(--admin-hero-grad);
+    box-shadow: var(--shadow-md);
+    color: var(--white);
+    overflow: hidden;
+}
+
+.admin-hero-text { flex: 1 1 auto; position: relative; z-index: 1; }
+
+.admin-hero-eyebrow {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.82);
+    margin-bottom: 6px;
+}
+
+.admin-hero-title {
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 6px;
+    letter-spacing: -0.3px;
+}
+
+.admin-hero-subtitle {
+    font-size: 0.95rem;
+    color: rgba(255,255,255,.88);
+    line-height: 1.5;
+    margin: 0;
+    max-width: 560px;
+}
+
+.admin-hero-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.admin-hero-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: 1.5px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    transition: var(--t);
+    font-family: var(--font);
+}
+
+.admin-hero-btn-primary {
+    background: var(--white);
+    color: var(--body-bg);
+    border-color: var(--white);
+}
+.admin-hero-btn-primary:hover:not([disabled]) {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.admin-hero-btn-ghost {
+    background: transparent;
+    color: var(--white);
+    border-color: rgba(255,255,255,.7);
+}
+.admin-hero-btn-ghost:hover:not([disabled]) {
+    background: var(--white);
+    color: var(--body-bg);
+    border-color: var(--white);
+}
+
+.admin-hero-btn[disabled] {
+    cursor: not-allowed;
+    opacity: .7;
+}
+
+/* Tile grid (3-up on desktop, fits 6 tiles in 2 rows) */
+.dash-tiles {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-bottom: 36px;
+}
+
+.dash-tile {
+    position: relative;
+    overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 22px 24px;
+    min-height: 138px;
+    display: flex;
+    flex-direction: column;
+    color: var(--white);
+    transition: var(--t);
+}
+.dash-tile:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Per-tile color variants */
+.dash-tile.is-cyan   { background: var(--tile-cyan);   border-color: transparent; }
+.dash-tile.is-pink   { background: var(--tile-pink);   border-color: transparent; }
+.dash-tile.is-purple { background: var(--tile-purple); border-color: transparent; }
+.dash-tile.is-orange { background: var(--tile-orange); border-color: transparent; }
+.dash-tile.is-cyan:hover   { background: var(--tile-cyan-hover); }
+.dash-tile.is-pink:hover   { background: var(--tile-pink-hover); }
+.dash-tile.is-purple:hover { background: var(--tile-purple-hover); }
+.dash-tile.is-orange:hover { background: var(--tile-orange-hover); }
+
+/* Big background icon, top-right, semi-transparent */
+.dash-tile-icon {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255,255,255,.28);
+    line-height: 0;
+    pointer-events: none;
+}
+
+.dash-tile-value {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: var(--white);
+    line-height: 1;
+    margin-bottom: 4px;
+    position: relative;
+    z-index: 1;
+}
+
+.dash-tile-label {
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: rgba(255,255,255,.92);
+    text-transform: none;
+    letter-spacing: 0;
+    margin: 0 0 14px;
+    position: relative;
+    z-index: 1;
+}
+
+.dash-tile-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: auto;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: rgba(255,255,255,.95);
+    transition: var(--t);
+    align-self: flex-start;
+    position: relative;
+    z-index: 1;
+}
+.dash-tile-link::after {
+    content: '\2192';
+    font-size: 0.95rem;
+}
+.dash-tile-link:hover { color: var(--white); }
+.dash-tile-link[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: .8;
+}
+.dash-tile-link[aria-disabled="true"]:hover { color: rgba(255,255,255,.95); }
+
+/* Quick links */
+.dash-quicklinks-section { margin-bottom: 36px; }
+
+.dash-quicklinks-heading {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 14px;
+}
+
+.dash-quicklinks {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+}
+
+.dash-quicklink {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: var(--t);
+    min-height: 76px;
+}
+.dash-quicklink:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+.dash-quicklink[aria-disabled="true"] { cursor: not-allowed; }
+
+.dash-quicklink-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    background: var(--surface);
+}
+
+.dash-quicklink-text { flex: 1 1 auto; min-width: 0; }
+
+.dash-quicklink-label {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.2;
+    margin-bottom: 3px;
+}
+
+.dash-quicklink-desc {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    line-height: 1.35;
+}
+
+/* Per-color modifiers for quick links */
+.dash-quicklink.is-cyan   { background: var(--ql-cyan-bg);   border-color: var(--ql-cyan-bd); }
+.dash-quicklink.is-pink   { background: var(--ql-pink-bg);   border-color: var(--ql-pink-bd); }
+.dash-quicklink.is-purple { background: var(--ql-purple-bg); border-color: var(--ql-purple-bd); }
+.dash-quicklink.is-orange { background: var(--ql-orange-bg); border-color: var(--ql-orange-bd); }
+
+.dash-quicklink.is-cyan   .dash-quicklink-icon { background: var(--ql-cyan-badge);   color: var(--tile-cyan); }
+.dash-quicklink.is-pink   .dash-quicklink-icon { background: var(--ql-pink-badge);   color: var(--tile-pink); }
+.dash-quicklink.is-purple .dash-quicklink-icon { background: var(--ql-purple-badge); color: var(--tile-purple); }
+.dash-quicklink.is-orange .dash-quicklink-icon { background: var(--ql-orange-badge); color: var(--tile-orange); }
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .dash-tiles { grid-template-columns: repeat(2, 1fr); }
+    .dash-quicklinks { grid-template-columns: repeat(2, 1fr); }
+    .admin-hero { flex-direction: column; align-items: flex-start; }
+}
+
+@media (max-width: 640px) {
+    .dash-tiles { grid-template-columns: 1fr; }
+    .dash-quicklinks { grid-template-columns: 1fr; }
+    .admin-hero { padding: 24px 22px; }
+    .admin-hero-title { font-size: 1.35rem; }
+    .admin-hero-actions { width: 100%; }
+    .admin-hero-btn { flex: 1 1 0; justify-content: center; }
+}
+
 /* Responsive */
 @media (max-width: 640px) {
     .dash-section { padding: 28px 16px 48px; }

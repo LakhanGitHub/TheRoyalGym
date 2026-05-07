@@ -25,6 +25,36 @@
     --brand-instagram:      #E4405F;
     --brand-instagram-grad: linear-gradient(45deg, #F58529 0%, #DD2A7B 45%, #8134AF 75%, #515BD4 100%);
 
+    /* Admin hero (gradient banner — dark text on gold) */
+    --admin-hero-text-soft: rgba(13,13,13,.78);
+
+    /* Admin tile palette (reference dashboard.jpg) */
+    --tile-cyan:          #1ec6e8;
+    --tile-cyan-hover:    #18a8c4;
+    --tile-pink:          #ed217c;
+    --tile-pink-hover:    #c81b6a;
+    --tile-purple:        #7b6fc4;
+    --tile-purple-hover:  #6857b1;
+    --tile-orange:        #ff8c2a;
+    --tile-orange-hover:  #e6760f;
+
+    /* Admin hero gradient (purple → pink → orange) */
+    --admin-hero-grad:    linear-gradient(135deg, #7b6fc4 0%, #ed217c 50%, #ff8c2a 100%);
+
+    /* Quick-link tints (soft fills + icon-badge tints, dark-theme friendly) */
+    --ql-cyan-bg:        rgba(30,198,232,.10);
+    --ql-cyan-bd:        rgba(30,198,232,.32);
+    --ql-cyan-badge:     rgba(30,198,232,.22);
+    --ql-pink-bg:        rgba(237,33,124,.10);
+    --ql-pink-bd:        rgba(237,33,124,.32);
+    --ql-pink-badge:     rgba(237,33,124,.22);
+    --ql-purple-bg:      rgba(123,111,196,.12);
+    --ql-purple-bd:      rgba(123,111,196,.36);
+    --ql-purple-badge:   rgba(123,111,196,.26);
+    --ql-orange-bg:      rgba(255,140,42,.10);
+    --ql-orange-bd:      rgba(255,140,42,.32);
+    --ql-orange-badge:   rgba(255,140,42,.22);
+
     /* Info / contact */
     --info-card-bg:       #1a1a1a;
     --info-card-border:   rgba(255,255,255,.10);
@@ -63,6 +93,7 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
+body.no-topbar { --topbar-h: 0px; }
 
 img  { max-width: 100%; height: auto; display: block; }
 a    { text-decoration: none; color: inherit; }
