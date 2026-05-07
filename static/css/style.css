@@ -22,6 +22,11 @@
     --danger:             #c0392b;
     --danger-hover:       #a3301f;
 
+    /* Warning accent (edit / cautionary affordances — soft yellow pill) */
+    --warning-bg:         rgba(245,166,35,.15);
+    --warning-bg-hover:   rgba(245,166,35,.28);
+    --warning-bd:         rgba(245,166,35,.45);
+
     /* Social brand colors (placeholders for footer social icons) */
     --brand-whatsapp:       #25D366;
     --brand-youtube:        #FF0000;

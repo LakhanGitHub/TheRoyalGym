@@ -16,12 +16,15 @@ from database.db import (
     get_member_by_email, create_enquiry,
     count_members_registered_today,
     update_member_role, update_member_password, delete_member, count_admins,
+    get_all_plans, get_plan_by_id, create_plan, update_plan, delete_plan,
     is_valid_email, is_valid_mobile,
 )
 
+PLAN_DURATIONS = {'Monthly': 1, 'Quarterly': 3, 'Yearly': 12}
+
 ADMIN_NAV_ITEMS = [
     {'label': 'Members',       'endpoint': None,             'desc': 'Add, edit and search members.',         'color': 'cyan'},
-    {'label': 'Plans',         'endpoint': None,             'desc': 'Membership plans and pricing.',         'color': 'pink'},
+    {'label': 'Plans',         'endpoint': 'admin_plans',    'desc': 'Membership plans and pricing.',         'color': 'pink'},
     {'label': 'Trainers',      'endpoint': None,             'desc': 'Roster, schedules and payouts.',        'color': 'purple'},
     {'label': 'Payments',      'endpoint': None,             'desc': 'Paid and pending invoices.',            'color': 'orange'},
     {'label': 'Attendance',    'endpoint': None,             'desc': 'Daily check-in records.',               'color': 'cyan'},
@@ -316,6 +319,146 @@ def admin_settings_delete(user_id):
         app.logger.exception('Delete failed')
         flash('Action failed. Please try again.', 'error')
     return redirect(url_for('admin_settings'))
+
+
+@app.route('/admin/plans')
+@admin_required
+def admin_plans():
+    plans = get_all_plans()
+    return render_template(
+        'admin_plans.html',
+        nav_items=ADMIN_NAV_ITEMS,
+        plans=plans,
+        active_tab='Plans',
+    )
+
+
+def _parse_plan_form():
+    """Validate name + fee from request.form. Returns (name, duration_months, fee, error)."""
+    name = request.form.get('name', '').strip()
+    fee_raw = request.form.get('fee', '').strip()
+
+    if name not in PLAN_DURATIONS:
+        return None, None, None, 'Plan name must be Monthly, Quarterly, or Yearly.'
+
+    try:
+        fee = float(fee_raw)
+    except ValueError:
+        return None, None, None, 'Fee must be a valid number.'
+    if fee < 0 or fee > 1_000_000:
+        return None, None, None, 'Fee must be between 0 and 1,000,000.'
+
+    return name, PLAN_DURATIONS[name], fee, None
+
+
+@app.route('/admin/plans/new', methods=['GET', 'POST'])
+@admin_required
+def admin_plans_new():
+    prefill = {'name': request.form.get('name', ''), 'fee': request.form.get('fee', '')}
+
+    if request.method == 'POST':
+        if not _valid_csrf(request.form.get('csrf_token')):
+            abort(403)
+
+        name, duration_months, fee, err = _parse_plan_form()
+        if err:
+            flash(err, 'error')
+            return render_template(
+                'admin_plan_form.html', nav_items=ADMIN_NAV_ITEMS,
+                active_tab='Plans', mode='new', plan=None, prefill=prefill,
+                allowed_names=list(PLAN_DURATIONS.keys()),
+            )
+
+        try:
+            create_plan(name, duration_months, fee)
+            flash(f'Plan "{name}" created.', 'success')
+            return redirect(url_for('admin_plans'))
+        except sqlite3.IntegrityError:
+            flash(f'A "{name}" plan already exists. Edit the existing one or delete it first.', 'error')
+        except sqlite3.Error:
+            app.logger.exception('Plan create failed')
+            flash('Action failed. Please try again.', 'error')
+
+        return render_template(
+            'admin_plan_form.html', nav_items=ADMIN_NAV_ITEMS,
+            active_tab='Plans', mode='new', plan=None, prefill=prefill,
+            allowed_names=list(PLAN_DURATIONS.keys()),
+        )
+
+    return render_template(
+        'admin_plan_form.html', nav_items=ADMIN_NAV_ITEMS,
+        active_tab='Plans', mode='new', plan=None, prefill=prefill,
+        allowed_names=list(PLAN_DURATIONS.keys()),
+    )
+
+
+@app.route('/admin/plans/<int:plan_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def admin_plans_edit(plan_id):
+    plan = get_plan_by_id(plan_id)
+    if not plan:
+        flash('Plan not found.', 'error')
+        return redirect(url_for('admin_plans'))
+
+    prefill = {
+        'name': request.form.get('name', plan['name']),
+        'fee':  request.form.get('fee',  f"{plan['fee']:.2f}"),
+    }
+
+    if request.method == 'POST':
+        if not _valid_csrf(request.form.get('csrf_token')):
+            abort(403)
+
+        name, duration_months, fee, err = _parse_plan_form()
+        if err:
+            flash(err, 'error')
+            return render_template(
+                'admin_plan_form.html', nav_items=ADMIN_NAV_ITEMS,
+                active_tab='Plans', mode='edit', plan=plan, prefill=prefill,
+                allowed_names=list(PLAN_DURATIONS.keys()),
+            )
+
+        try:
+            update_plan(plan_id, name, duration_months, fee)
+            flash(f'Plan "{name}" updated.', 'success')
+            return redirect(url_for('admin_plans'))
+        except sqlite3.IntegrityError:
+            flash(f'A "{name}" plan already exists. Pick a different name or delete the duplicate.', 'error')
+        except sqlite3.Error:
+            app.logger.exception('Plan update failed')
+            flash('Action failed. Please try again.', 'error')
+
+        return render_template(
+            'admin_plan_form.html', nav_items=ADMIN_NAV_ITEMS,
+            active_tab='Plans', mode='edit', plan=plan, prefill=prefill,
+            allowed_names=list(PLAN_DURATIONS.keys()),
+        )
+
+    return render_template(
+        'admin_plan_form.html', nav_items=ADMIN_NAV_ITEMS,
+        active_tab='Plans', mode='edit', plan=plan, prefill=prefill,
+        allowed_names=list(PLAN_DURATIONS.keys()),
+    )
+
+
+@app.route('/admin/plans/<int:plan_id>/delete', methods=['POST'])
+@admin_required
+def admin_plans_delete(plan_id):
+    if not _valid_csrf(request.form.get('csrf_token')):
+        abort(403)
+
+    plan = get_plan_by_id(plan_id)
+    if not plan:
+        flash('Plan not found.', 'error')
+        return redirect(url_for('admin_plans'))
+
+    try:
+        delete_plan(plan_id)
+        flash(f'Deleted plan "{plan["name"]}".', 'success')
+    except sqlite3.Error:
+        app.logger.exception('Plan delete failed')
+        flash('Action failed. Please try again.', 'error')
+    return redirect(url_for('admin_plans'))
 
 
 @app.route('/member/dashboard')

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit Plan' if mode == 'edit' else 'Add Plan' }} &mdash; The Royal Gym{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="dash-section">
+    <div class="dash-container">
+
+        {% include "_admin_tabs.html" %}
+
+        <section class="dash-panel plan-form-panel">
+            <header class="plans-header">
+                <div class="plans-heading">
+                    <span class="plans-crown" aria-hidden="true">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 7l4 4l5 -7l5 7l4 -4v11a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1z"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <h1 class="plans-title">{{ 'Edit Membership Plan' if mode == 'edit' else 'Add Membership Plan' }}</h1>
+                        <p class="plans-subtitle">
+                            {% if mode == 'edit' %}
+                            Update the name or fee for this plan.
+                            {% else %}
+                            Choose a plan type and set its fee. Duration is set automatically.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <a href="{{ url_for('admin_plans') }}" class="user-action-btn">&larr; Back to plans</a>
+            </header>
+
+            <form method="post" class="plan-form"
+                  action="{{ url_for('admin_plans_edit', plan_id=plan.id) if mode == 'edit' else url_for('admin_plans_new') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <label class="user-pw-label">
+                    <span>Plan name</span>
+                    <select name="name" class="user-pw-input" required>
+                        {% for opt in allowed_names %}
+                        <option value="{{ opt }}"{% if prefill.name == opt %} selected{% endif %}>{{ opt }} ({{ {'Monthly': '1 month', 'Quarterly': '3 months', 'Yearly': '12 months'}[opt] }})</option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <label class="user-pw-label">
+                    <span>Fee (&#8377;)</span>
+                    <input type="number" name="fee" class="user-pw-input"
+                           min="0" max="1000000" step="0.01" required
+                           value="{{ prefill.fee }}"
+                           placeholder="e.g. 1200.00">
+                </label>
+
+                <div class="plan-form-actions">
+                    <a href="{{ url_for('admin_plans') }}" class="user-action-btn">Cancel</a>
+                    <button type="submit" class="plans-add-btn">
+                        {{ 'Save changes' if mode == 'edit' else 'Create plan' }}
+                    </button>
+                </div>
+            </form>
+        </section>
+
+    </div>
+</section>
+{% endblock %}
