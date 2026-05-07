@@ -9,113 +9,289 @@
 <section class="dash-section">
     <div class="dash-container">
 
-        <!-- Header -->
-        <div class="dash-header">
-            <div class="dash-header-top">
-                <div class="dash-avatar dash-avatar-admin">
-                    {{ session.get('user_name', 'A')[0].upper() }}
-                </div>
-                <div>
-                    <h1>
-                        Welcome, {{ session.get('user_name') }}
-                        <span class="dash-role-tag dash-role-tag-admin">Admin</span>
-                    </h1>
-                    <p>Here's an overview of The Royal Gym.</p>
-                </div>
-            </div>
-        </div>
+        <!-- Admin Tab Bar -->
+        <nav class="admin-tabs" aria-label="Admin sections">
+            <a class="admin-tab is-active" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+            {% for item in nav_items %}
+            <a class="admin-tab" href="#" aria-disabled="true">{{ item }}</a>
+            {% endfor %}
+        </nav>
 
-        <!-- Stats -->
-        <div class="dash-stats">
-            <div class="stat-card">
-                <div class="stat-card-label">Total Members</div>
-                <div class="stat-card-value">{{ members | length }}</div>
+        <!-- Hero: Overview & Controls -->
+        <section class="admin-hero">
+            <div class="admin-hero-text">
+                <div class="admin-hero-eyebrow">Admin Dashboard</div>
+                <h1 class="admin-hero-title">Overview &amp; Controls</h1>
+                <p class="admin-hero-subtitle">
+                    Manage members, memberships, registrations, payments, attendance and more.
+                </p>
             </div>
-            <div class="stat-card">
-                <div class="stat-card-label">Enquiries</div>
-                <div class="stat-card-value">{{ enquiries | length }}</div>
+            <div class="admin-hero-actions">
+                <button type="button" class="admin-hero-btn admin-hero-btn-primary" disabled aria-disabled="true">
+                    + Add Member
+                </button>
+                <button type="button" class="admin-hero-btn admin-hero-btn-ghost" disabled aria-disabled="true">
+                    + Record Payment
+                </button>
             </div>
-            <div class="stat-card">
-                <div class="stat-card-label">Admins</div>
-                <div class="stat-card-value">{{ members | selectattr('role', 'equalto', 'admin') | list | length }}</div>
-            </div>
-        </div>
+        </section>
 
-        <!-- Members Table -->
-        <div class="dash-panel">
-            <div class="dash-panel-header">
-                <span>&#128101;</span>
-                <h2>All Members</h2>
-            </div>
-            <div class="dash-table-wrap">
-                {% if members %}
-                <table class="dash-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Role</th>
-                            <th>Joined</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for m in members %}
-                        <tr>
-                            <td>{{ m.id }}</td>
-                            <td><strong>{{ m.name }}</strong></td>
-                            <td>{{ m.email }}</td>
-                            <td>
-                                <span class="role-pill role-pill-{{ m.role }}">{{ m.role }}</span>
-                            </td>
-                            <td>{{ m.created_at[:10] if m.created_at else '—' }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                {% else %}
-                <div class="dash-empty">No members found.</div>
-                {% endif %}
-            </div>
-        </div>
+        <!-- Tile Grid -->
+        <section class="dash-tiles" aria-label="Key metrics">
 
-        <!-- Enquiries Table -->
-        <div class="dash-panel">
-            <div class="dash-panel-header">
-                <span>&#128140;</span>
-                <h2>Enquiries</h2>
-            </div>
-            <div class="dash-table-wrap">
-                {% if enquiries %}
-                <table class="dash-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Mobile</th>
-                            <th>Message</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for e in enquiries %}
-                        <tr>
-                            <td>{{ e.id }}</td>
-                            <td><strong>{{ e.name }}</strong></td>
-                            <td>{{ e.email or '—' }}</td>
-                            <td>{{ e.mobile or '—' }}</td>
-                            <td>{{ e.message[:60] }}{% if e.message | length > 60 %}…{% endif %}</td>
-                            <td>{{ e.submitted_at[:10] if e.submitted_at else '—' }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                {% else %}
-                <div class="dash-empty">No enquiries yet.</div>
-                {% endif %}
-            </div>
-        </div>
+            <!-- 1. Total Members (purple) -->
+            <article class="dash-tile is-purple">
+                <div class="dash-tile-value">{{ metrics.total_members }}</div>
+                <h2 class="dash-tile-label">Total Members</h2>
+                <a class="dash-tile-link" href="#" aria-disabled="true">View</a>
+                <span class="dash-tile-icon" aria-hidden="true">
+                    <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/>
+                        <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        <path d="M21 21v-2a4 4 0 0 0 -3 -3.85"/>
+                    </svg>
+                </span>
+            </article>
+
+            <!-- 2. Today Registrations (orange) -->
+            <article class="dash-tile is-orange">
+                <div class="dash-tile-value">{{ metrics.today_registrations }}</div>
+                <h2 class="dash-tile-label">Today Registrations</h2>
+                <a class="dash-tile-link" href="#" aria-disabled="true">View</a>
+                <span class="dash-tile-icon" aria-hidden="true">
+                    <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="4" y="5" width="16" height="16" rx="2"/>
+                        <path d="M16 3v4"/>
+                        <path d="M8 3v4"/>
+                        <path d="M4 11h16"/>
+                        <path d="M10 16h4"/>
+                        <path d="M12 14v4"/>
+                    </svg>
+                </span>
+            </article>
+
+            <!-- 3. Active Membership (purple) -->
+            <article class="dash-tile is-purple">
+                <div class="dash-tile-value">{{ metrics.active_membership }}</div>
+                <h2 class="dash-tile-label">Active Membership</h2>
+                <a class="dash-tile-link" href="#" aria-disabled="true">View</a>
+                <span class="dash-tile-icon" aria-hidden="true">
+                    <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3l8 4.5v4.5c0 4.5 -3 8 -8 9c-5 -1 -8 -4.5 -8 -9v-4.5l8 -4.5z"/>
+                        <path d="M9 12l2 2l4 -4"/>
+                    </svg>
+                </span>
+            </article>
+
+            <!-- 4. Men (cyan) -->
+            <article class="dash-tile is-cyan">
+                <div class="dash-tile-value">{{ metrics.men }}</div>
+                <h2 class="dash-tile-label">Men</h2>
+                <a class="dash-tile-link" href="#" aria-disabled="true">View</a>
+                <span class="dash-tile-icon" aria-hidden="true">
+                    <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="10" cy="14" r="5"/>
+                        <path d="M19 5l-5.4 5.4"/>
+                        <path d="M19 5h-5"/>
+                        <path d="M19 5v5"/>
+                    </svg>
+                </span>
+            </article>
+
+            <!-- 5. Women (pink) -->
+            <article class="dash-tile is-pink">
+                <div class="dash-tile-value">{{ metrics.women }}</div>
+                <h2 class="dash-tile-label">Women</h2>
+                <a class="dash-tile-link" href="#" aria-disabled="true">View</a>
+                <span class="dash-tile-icon" aria-hidden="true">
+                    <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="9" r="5"/>
+                        <path d="M12 14v7"/>
+                        <path d="M9 18h6"/>
+                    </svg>
+                </span>
+            </article>
+
+            <!-- 6. Subscription Expire This Month (orange) -->
+            <article class="dash-tile is-orange">
+                <div class="dash-tile-value">{{ metrics.subscription_expiring }}</div>
+                <h2 class="dash-tile-label">Subscription Expire This Month</h2>
+                <a class="dash-tile-link" href="#" aria-disabled="true">View</a>
+                <span class="dash-tile-icon" aria-hidden="true">
+                    <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10 5a2 2 0 0 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6"/>
+                        <path d="M9 17v1a3 3 0 0 0 6 0v-1"/>
+                        <path d="M21 6.727a11.05 11.05 0 0 0 -2.794 -3.727"/>
+                        <path d="M3 6.727a11.05 11.05 0 0 1 2.792 -3.727"/>
+                    </svg>
+                </span>
+            </article>
+
+        </section>
+
+        <!-- Quick Links — labels here must stay in sync with ADMIN_NAV_ITEMS in app.py -->
+        <section class="dash-quicklinks-section">
+            <h2 class="dash-quicklinks-heading">Quick Links</h2>
+            <nav class="dash-quicklinks" aria-label="Admin quick links">
+
+                <a class="dash-quicklink is-cyan" href="#" aria-disabled="true">
+                    <span class="dash-quicklink-icon" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            <path d="M21 21v-2a4 4 0 0 0 -3 -3.85"/>
+                        </svg>
+                    </span>
+                    <span class="dash-quicklink-text">
+                        <span class="dash-quicklink-label">Members</span>
+                        <span class="dash-quicklink-desc">Add, edit and search members.</span>
+                    </span>
+                </a>
+
+                <a class="dash-quicklink is-pink" href="#" aria-disabled="true">
+                    <span class="dash-quicklink-icon" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="3" width="6" height="4" rx="1"/>
+                            <path d="M9 5h-3a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-3"/>
+                            <path d="M9 12h6"/>
+                            <path d="M9 16h4"/>
+                        </svg>
+                    </span>
+                    <span class="dash-quicklink-text">
+                        <span class="dash-quicklink-label">Plans</span>
+                        <span class="dash-quicklink-desc">Membership plans and pricing.</span>
+                    </span>
+                </a>
+
+                <a class="dash-quicklink is-purple" href="#" aria-disabled="true">
+                    <span class="dash-quicklink-icon" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 12h2"/>
+                            <path d="M20 12h2"/>
+                            <path d="M6 8h-2a1 1 0 0 0 -1 1v6a1 1 0 0 0 1 1h2"/>
+                            <path d="M18 8h2a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-2"/>
+                            <path d="M8 6h8a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-8a1 1 0 0 1 -1 -1v-10a1 1 0 0 1 1 -1"/>
+                            <path d="M9 12h6"/>
+                        </svg>
+                    </span>
+                    <span class="dash-quicklink-text">
+                        <span class="dash-quicklink-label">Trainers</span>
+                        <span class="dash-quicklink-desc">Roster, schedules and payouts.</span>
+                    </span>
+                </a>
+
+                <a class="dash-quicklink is-orange" href="#" aria-disabled="true">
+                    <span class="dash-quicklink-icon" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="6" width="18" height="14" rx="2"/>
+                            <path d="M3 10h18"/>
+                            <path d="M7 15h2"/>
+                        </svg>
+                    </span>
+                    <span class="dash-quicklink-text">
+                        <span class="dash-quicklink-label">Payments</span>
+                        <span class="dash-quicklink-desc">Paid and pending invoices.</span>
+                    </span>
+                </a>
+
+                <a class="dash-quicklink is-cyan" href="#" aria-disabled="true">
+                    <span class="dash-quicklink-icon" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="4" y="5" width="16" height="16" rx="2"/>
+                            <path d="M16 3v4"/>
+                            <path d="M8 3v4"/>
+                            <path d="M4 11h16"/>
+                            <path d="M9 16l2 2l4 -4"/>
+                        </svg>
+                    </span>
+                    <span class="dash-quicklink-text">
+                        <span class="dash-quicklink-label">Attendance</span>
+                        <span class="dash-quicklink-desc">Daily check-in records.</span>
+                    </span>
+                </a>
+
+                <a class="dash-quicklink is-pink" href="#" aria-disabled="true">
+                    <span class="dash-quicklink-icon" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22a9.2 9.2 0 0 1 -8 -5h16a9.2 9.2 0 0 1 -8 5z"/>
+                            <path d="M3.066 17a1 1 0 0 1 -.866 -1.5c1.154 -2 4 -3.5 9.8 -3.5s8.646 1.5 9.8 3.5a1 1 0 0 1 -.866 1.5"/>
+                            <path d="M11 8c0 -1 -1 -2 -2 -2c-1 0 -2 1 -2 2"/>
+                            <path d="M17 8c0 -1 -1 -2 -2 -2c-1 0 -2 1 -2 2"/>
+                            <path d="M12 4v8"/>
+                        </svg>
+                    </span>
+                    <span class="dash-quicklink-text">
+                        <span class="dash-quicklink-label">Diet</span>
+                        <span class="dash-quicklink-desc">Meal plans for members.</span>
+                    </span>
+                </a>
+
+                <a class="dash-quicklink is-purple" href="#" aria-disabled="true">
+                    <span class="dash-quicklink-icon" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 21h4l13 -13a1.5 1.5 0 0 0 -4 -4l-13 13v4"/>
+                            <path d="M14.5 5.5l4 4"/>
+                            <path d="M12 8l-5 -5l-4 4l5 5"/>
+                            <path d="M7 8l-1.5 1.5"/>
+                            <path d="M16 12l5 5l-4 4l-5 -5"/>
+                            <path d="M16 17l-1.5 1.5"/>
+                        </svg>
+                    </span>
+                    <span class="dash-quicklink-text">
+                        <span class="dash-quicklink-label">Equipment</span>
+                        <span class="dash-quicklink-desc">Inventory and purchase records.</span>
+                    </span>
+                </a>
+
+                <a class="dash-quicklink is-orange" href="#" aria-disabled="true">
+                    <span class="dash-quicklink-icon" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 21v-13a3 3 0 0 1 3 -3h10a3 3 0 0 1 3 3v6a3 3 0 0 1 -3 3h-9l-4 4"/>
+                            <path d="M8 9h8"/>
+                            <path d="M8 13h6"/>
+                        </svg>
+                    </span>
+                    <span class="dash-quicklink-text">
+                        <span class="dash-quicklink-label">Enquiries</span>
+                        <span class="dash-quicklink-desc">Leads from the contact form.</span>
+                    </span>
+                </a>
+
+                <a class="dash-quicklink is-cyan" href="#" aria-disabled="true">
+                    <span class="dash-quicklink-icon" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 12h2"/>
+                            <path d="M20 12h2"/>
+                            <path d="M6 8h-2a1 1 0 0 0 -1 1v6a1 1 0 0 0 1 1h2"/>
+                            <path d="M18 8h2a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-2"/>
+                            <path d="M7 11h10"/>
+                            <path d="M7 13h10"/>
+                            <path d="M5 6h2v12h-2z"/>
+                            <path d="M17 6h2v12h-2z"/>
+                        </svg>
+                    </span>
+                    <span class="dash-quicklink-text">
+                        <span class="dash-quicklink-label">Workout Plans</span>
+                        <span class="dash-quicklink-desc">Training routines and sets.</span>
+                    </span>
+                </a>
+
+                <a class="dash-quicklink is-pink" href="#" aria-disabled="true">
+                    <span class="dash-quicklink-icon" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z"/>
+                        </svg>
+                    </span>
+                    <span class="dash-quicklink-text">
+                        <span class="dash-quicklink-label">Feedback</span>
+                        <span class="dash-quicklink-desc">Member reviews and ratings.</span>
+                    </span>
+                </a>
+
+            </nav>
+        </section>
 
     </div>
 </section>

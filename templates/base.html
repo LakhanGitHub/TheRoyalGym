@@ -11,9 +11,10 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body{% if session.get('user_role') == 'admin' %} class="no-topbar"{% endif %}>
 
-    <!-- Top Bar: The Royal Gym -->
+    {% if session.get('user_role') != 'admin' %}
+    <!-- Top Bar: The Royal Gym (hidden for admin users) -->
     <div class="top-bar">
         <div class="top-bar-inner">
             <span class="top-bar-badge">NEW</span>
@@ -23,6 +24,7 @@
             <a href="#" class="top-bar-link">Explore Now &rarr;</a>
         </div>
     </div>
+    {% endif %}
 
     <!-- Navbar -->
     <nav class="navbar" id="navbar">
