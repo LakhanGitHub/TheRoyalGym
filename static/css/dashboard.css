@@ -1,0 +1,175 @@
+/* =========================================================
+   dashboard.css — Admin & Member dashboard styles
+   ========================================================= */
+
+.dash-section {
+    min-height: calc(100vh - var(--topbar-h) - var(--nav-h));
+    padding: 48px 24px 64px;
+}
+
+.dash-container {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+/* Header */
+.dash-header {
+    margin-bottom: 36px;
+}
+
+.dash-header-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 6px;
+}
+
+.dash-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.dash-avatar-admin  { background: rgba(245,166,35,.15); color: var(--accent-gold); border: 1px solid rgba(245,166,35,.3); }
+.dash-avatar-member { background: rgba(255,255,255,.08); color: rgba(255,255,255,.8); border: 1px solid rgba(255,255,255,.15); }
+
+.dash-header h1 { font-size: 1.6rem; font-weight: 700; }
+.dash-header p  { font-size: 0.9rem; color: var(--text-secondary); margin-top: 2px; }
+
+/* Role badge inline */
+.dash-role-tag {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    vertical-align: middle;
+    margin-left: 8px;
+}
+.dash-role-tag-admin  { background: rgba(245,166,35,.15); color: var(--accent-gold); border: 1px solid rgba(245,166,35,.3); }
+.dash-role-tag-member { background: rgba(16,185,129,.12); color: #34d399; border: 1px solid rgba(16,185,129,.3); }
+
+/* Stats row */
+.dash-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 36px;
+}
+
+.stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 20px 22px;
+}
+.stat-card-label { font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+.stat-card-value { font-size: 1.8rem; font-weight: 700; color: var(--accent-gold); line-height: 1; }
+
+/* Panels */
+.dash-panel {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: 28px;
+}
+
+.dash-panel-header {
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.dash-panel-header h2 { font-size: 0.95rem; font-weight: 600; }
+
+/* Table */
+.dash-table-wrap { overflow-x: auto; }
+
+.dash-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+.dash-table th {
+    text-align: left;
+    padding: 11px 18px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+.dash-table td {
+    padding: 13px 18px;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+    color: var(--text-secondary);
+    vertical-align: middle;
+}
+.dash-table tr:last-child td { border-bottom: none; }
+.dash-table tr:hover td { background: rgba(255,255,255,.03); }
+
+.dash-table td strong { color: var(--text-primary); font-weight: 500; }
+
+.role-pill {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+.role-pill-admin  { background: rgba(245,166,35,.12); color: var(--accent-gold); border: 1px solid rgba(245,166,35,.25); }
+.role-pill-user   { background: rgba(16,185,129,.1);  color: #34d399;            border: 1px solid rgba(16,185,129,.25); }
+
+/* Profile card */
+.profile-card {
+    padding: 28px 26px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+@media (max-width: 500px) { .profile-card { grid-template-columns: 1fr; } }
+
+.profile-field label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 4px;
+}
+.profile-field span {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.status-active {
+    color: #34d399;
+    font-weight: 600;
+}
+
+/* Empty state */
+.dash-empty {
+    padding: 36px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .dash-section { padding: 28px 16px 48px; }
+    .dash-stats { grid-template-columns: 1fr 1fr; }
+}

@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard &mdash; The Royal Gym{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="dash-section">
+    <div class="dash-container">
+
+        <!-- Header -->
+        <div class="dash-header">
+            <div class="dash-header-top">
+                <div class="dash-avatar dash-avatar-admin">
+                    {{ session.get('user_name', 'A')[0].upper() }}
+                </div>
+                <div>
+                    <h1>
+                        Welcome, {{ session.get('user_name') }}
+                        <span class="dash-role-tag dash-role-tag-admin">Admin</span>
+                    </h1>
+                    <p>Here's an overview of The Royal Gym.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="dash-stats">
+            <div class="stat-card">
+                <div class="stat-card-label">Total Members</div>
+                <div class="stat-card-value">{{ members | length }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-label">Enquiries</div>
+                <div class="stat-card-value">{{ enquiries | length }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-label">Admins</div>
+                <div class="stat-card-value">{{ members | selectattr('role', 'equalto', 'admin') | list | length }}</div>
+            </div>
+        </div>
+
+        <!-- Members Table -->
+        <div class="dash-panel">
+            <div class="dash-panel-header">
+                <span>&#128101;</span>
+                <h2>All Members</h2>
+            </div>
+            <div class="dash-table-wrap">
+                {% if members %}
+                <table class="dash-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Joined</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in members %}
+                        <tr>
+                            <td>{{ m.id }}</td>
+                            <td><strong>{{ m.name }}</strong></td>
+                            <td>{{ m.email }}</td>
+                            <td>
+                                <span class="role-pill role-pill-{{ m.role }}">{{ m.role }}</span>
+                            </td>
+                            <td>{{ m.created_at[:10] if m.created_at else '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="dash-empty">No members found.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Enquiries Table -->
+        <div class="dash-panel">
+            <div class="dash-panel-header">
+                <span>&#128140;</span>
+                <h2>Enquiries</h2>
+            </div>
+            <div class="dash-table-wrap">
+                {% if enquiries %}
+                <table class="dash-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Mobile</th>
+                            <th>Message</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for e in enquiries %}
+                        <tr>
+                            <td>{{ e.id }}</td>
+                            <td><strong>{{ e.name }}</strong></td>
+                            <td>{{ e.email or '—' }}</td>
+                            <td>{{ e.mobile or '—' }}</td>
+                            <td>{{ e.message[:60] }}{% if e.message | length > 60 %}…{% endif %}</td>
+                            <td>{{ e.submitted_at[:10] if e.submitted_at else '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="dash-empty">No enquiries yet.</div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{% block title %}The Royal Gym{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- Top Bar: The Royal Gym -->
+    <div class="top-bar">
+        <div class="top-bar-inner">
+            <span class="top-bar-badge">NEW</span>
+            <span class="top-bar-text">
+                Also explore <strong>The Royal Gym</strong> &mdash; Our premium partner gym now open in your city!
+            </span>
+            <a href="#" class="top-bar-link">Explore Now &rarr;</a>
+        </div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('index') }}" class="nav-brand">
+                <span class="brand-icon">&#127947;</span>
+                The Royal Gym
+            </a>
+            <div class="nav-links" id="navLinks">
+                {% if session.get('user_id') %}
+                    {% if session.get('user_role') == 'admin' %}
+                        <span class="nav-role-badge nav-role-admin">Admin</span>
+                        <a href="{{ url_for('admin_dashboard') }}" class="nav-btn nav-btn-primary">Admin Dashboard</a>
+                    {% else %}
+                        <span class="nav-role-badge nav-role-member">Member</span>
+                        <a href="{{ url_for('member_dashboard') }}" class="nav-btn nav-btn-outline">My Dashboard</a>
+                    {% endif %}
+                    <a href="{{ url_for('logout') }}" class="nav-btn nav-btn-logout">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="nav-btn nav-btn-outline">Admin Login</a>
+                    <a href="{{ url_for('login') }}" class="nav-btn nav-btn-primary">Member Login</a>
+                {% endif %}
+            </div>
+            <button class="nav-hamburger" id="navHamburger" aria-label="Toggle menu" aria-expanded="false">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-container">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">
+            <span>{{ message }}</span>
+            <button class="flash-close" type="button" aria-label="Close">&times;</button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Page Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer" role="contentinfo">
+        <div class="footer-inner">
+            <div class="footer-grid">
+
+                <!-- Brand -->
+                <div class="footer-col">
+                    <div class="footer-brand">
+                        <span class="footer-brand-mark" aria-hidden="true">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M2 12h2"/>
+                                <path d="M20 12h2"/>
+                                <rect x="4" y="8" width="3" height="8" rx="1"/>
+                                <rect x="17" y="8" width="3" height="8" rx="1"/>
+                                <path d="M7 12h10"/>
+                            </svg>
+                        </span>
+                        <span>The Royal Gym</span>
+                    </div>
+                    <p class="footer-tagline">
+                        Your premier destination for fitness excellence and personal transformation.
+                    </p>
+                </div>
+
+                <!-- Quick Links -->
+                <nav class="footer-col" aria-label="Footer quick links">
+                    <h3 class="footer-heading">Quick Links</h3>
+                    <ul class="footer-links">
+                        <li><a class="footer-link" href="{{ url_for('index', _anchor='home') }}">Home</a></li>
+                        <li><a class="footer-link" href="{{ url_for('index', _anchor='why') }}">About</a></li>
+                        <li><a class="footer-link" href="{{ url_for('index', _anchor='programs') }}">Programs</a></li>
+                        <li><a class="footer-link" href="{{ url_for('index', _anchor='plans') }}">Pricing</a></li>
+                    </ul>
+                </nav>
+
+                <!-- Programs -->
+                <nav class="footer-col" aria-label="Footer programs">
+                    <h3 class="footer-heading">Programs</h3>
+                    <ul class="footer-links">
+                        <li><a class="footer-link" href="{{ url_for('index', _anchor='programs') }}">Strength Training</a></li>
+                        <li><a class="footer-link" href="{{ url_for('index', _anchor='programs') }}">Cardio Classes</a></li>
+                        <li><a class="footer-link" href="{{ url_for('index', _anchor='programs') }}">Personal Training</a></li>
+                        <li><a class="footer-link" href="{{ url_for('index', _anchor='programs') }}">Group Fitness</a></li>
+                    </ul>
+                </nav>
+
+                <!-- Contact Us -->
+                <div class="footer-col">
+                    <h3 class="footer-heading">Contact Us</h3>
+                    <address class="footer-contact">
+                        <div class="footer-contact-line">
+                            <span class="footer-icon" aria-hidden="true">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
+                                </svg>
+                            </span>
+                            <a href="tel:+919876543210">+91 98765 43210</a>
+                        </div>
+                        <div class="footer-contact-line">
+                            <span class="footer-icon" aria-hidden="true">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                    <polyline points="22,6 12,13 2,6"/>
+                                </svg>
+                            </span>
+                            <a href="mailto:info@royalgym.com">info@royalgym.com</a>
+                        </div>
+                        <div class="footer-contact-line">
+                            <span class="footer-icon" aria-hidden="true">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                                    <circle cx="12" cy="10" r="3"/>
+                                </svg>
+                            </span>
+                            <span>DAV Chowk Pratap Vihar Ghaziabad India</span>
+                        </div>
+                    </address>
+                </div>
+
+            </div>
+
+            <hr class="footer-divider">
+
+            <div class="footer-bottom">
+                <span>&copy; 2026 The Royal Gym. All rights reserved.</span>
+                <span class="footer-bottom-sep" aria-hidden="true">·</span>
+                <a href="{{ url_for('terms') }}">Terms &amp; Conditions</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
