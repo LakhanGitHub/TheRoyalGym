@@ -140,6 +140,46 @@ def create_enquiry(name, email, mobile, message):
         conn.close()
 
 
+def update_member_role(user_id, new_role):
+    if new_role not in ('admin', 'user'):
+        raise ValueError(f'invalid role: {new_role!r}')
+    conn = get_db()
+    try:
+        conn.execute('UPDATE members SET role = ? WHERE id = ?', (new_role, user_id))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def update_member_password(user_id, new_hash):
+    conn = get_db()
+    try:
+        conn.execute('UPDATE members SET password_hash = ? WHERE id = ?', (new_hash, user_id))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def delete_member(user_id):
+    conn = get_db()
+    try:
+        conn.execute('DELETE FROM members WHERE id = ?', (user_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def count_admins():
+    conn = get_db()
+    try:
+        row = conn.execute(
+            "SELECT COUNT(*) AS c FROM members WHERE role = 'admin'"
+        ).fetchone()
+        return row['c'] if row else 0
+    finally:
+        conn.close()
+
+
 _EMAIL_RE = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
 _MOBILE_RE = re.compile(r'^[\d\s+()\-]{7,20}$')
 

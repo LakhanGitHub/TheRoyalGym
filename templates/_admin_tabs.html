@@ -1,0 +1,10 @@
+<nav class="admin-tabs" aria-label="Admin sections">
+    <a class="admin-tab{% if active_tab == 'Dashboard' %} is-active{% endif %}" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+    {% for item in nav_items if item.label != 'Settings' %}
+        {% if item.endpoint %}
+    <a class="admin-tab{% if active_tab == item.label %} is-active{% endif %}" href="{{ url_for(item.endpoint) }}">{{ item.label }}</a>
+        {% else %}
+    <a class="admin-tab" href="#" aria-disabled="true">{{ item.label }}</a>
+        {% endif %}
+    {% endfor %}
+</nav>

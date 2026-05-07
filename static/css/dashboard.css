@@ -496,3 +496,139 @@
     .dash-section { padding: 28px 16px 48px; }
     .dash-stats { grid-template-columns: 1fr 1fr; }
 }
+
+/* =========================================================
+   Admin settings — user management actions
+   ========================================================= */
+
+.user-self-tag {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    color: var(--accent-gold);
+    background: rgba(245,166,35,.12);
+    border: 1px solid rgba(245,166,35,.25);
+}
+
+.user-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.user-actions form {
+    margin: 0;
+}
+
+.user-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: var(--font);
+    background: var(--surface-2);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: var(--t);
+    white-space: nowrap;
+}
+.user-action-btn:hover:not([disabled]) {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+}
+
+.user-action-btn-danger {
+    background: var(--danger);
+    color: var(--white);
+    border-color: var(--danger);
+}
+.user-action-btn-danger:hover:not([disabled]) {
+    background: var(--danger-hover);
+    border-color: var(--danger-hover);
+    color: var(--white);
+}
+
+.user-action-btn[disabled],
+.user-action-btn[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: .55;
+}
+
+.user-pw-details {
+    flex: 0 0 auto;
+}
+.user-pw-details > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: var(--surface-2);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    transition: var(--t);
+    white-space: nowrap;
+    display: inline-block;
+}
+.user-pw-details > summary::-webkit-details-marker { display: none; }
+.user-pw-details > summary:hover {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+}
+.user-pw-details[open] > summary {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+}
+
+.user-pw-form {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    min-width: 220px;
+}
+
+.user-pw-label {
+    display: grid;
+    gap: 4px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.user-pw-input {
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    background: var(--body-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-size: 0.875rem;
+    transition: var(--t);
+}
+.user-pw-input:focus {
+    outline: none;
+    border-color: var(--accent-gold);
+}
+
+@media (max-width: 768px) {
+    .user-actions { flex-direction: column; align-items: stretch; }
+    .user-pw-details { width: 100%; }
+    .user-pw-details > summary { width: 100%; text-align: center; }
+    .user-pw-form { min-width: 0; }
+}

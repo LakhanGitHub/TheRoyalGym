@@ -8,19 +8,29 @@ from datetime import timedelta
 from functools import wraps
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from database.db import (
     init_db, seed_db,
     get_member_by_id, get_all_members,
     get_member_by_email, create_enquiry,
     count_members_registered_today,
+    update_member_role, update_member_password, delete_member, count_admins,
     is_valid_email, is_valid_mobile,
 )
 
 ADMIN_NAV_ITEMS = [
-    'Members', 'Plans', 'Trainers', 'Payments', 'Attendance',
-    'Diet', 'Equipment', 'Enquiries', 'Workout Plans', 'Feedback',
+    {'label': 'Members',       'endpoint': None,             'desc': 'Add, edit and search members.',         'color': 'cyan'},
+    {'label': 'Plans',         'endpoint': None,             'desc': 'Membership plans and pricing.',         'color': 'pink'},
+    {'label': 'Trainers',      'endpoint': None,             'desc': 'Roster, schedules and payouts.',        'color': 'purple'},
+    {'label': 'Payments',      'endpoint': None,             'desc': 'Paid and pending invoices.',            'color': 'orange'},
+    {'label': 'Attendance',    'endpoint': None,             'desc': 'Daily check-in records.',               'color': 'cyan'},
+    {'label': 'Diet',          'endpoint': None,             'desc': 'Meal plans for members.',               'color': 'pink'},
+    {'label': 'Equipment',     'endpoint': None,             'desc': 'Inventory and purchase records.',       'color': 'purple'},
+    {'label': 'Enquiries',     'endpoint': None,             'desc': 'Leads from the contact form.',          'color': 'orange'},
+    {'label': 'Workout Plans', 'endpoint': None,             'desc': 'Training routines and sets.',           'color': 'cyan'},
+    {'label': 'Feedback',      'endpoint': None,             'desc': 'Member reviews and ratings.',           'color': 'pink'},
+    {'label': 'Settings',      'endpoint': 'admin_settings', 'desc': 'Roles, passwords and account control.', 'color': 'purple'},
 ]
 
 IS_PRODUCTION = os.environ.get('FLASK_ENV', '').lower() == 'production'
@@ -204,7 +214,108 @@ def admin_dashboard():
         'admin_dashboard.html',
         nav_items=ADMIN_NAV_ITEMS,
         metrics=metrics,
+        active_tab='Dashboard',
     )
+
+
+@app.route('/admin/settings')
+@admin_required
+def admin_settings():
+    users = get_all_members()
+    return render_template(
+        'admin_settings.html',
+        nav_items=ADMIN_NAV_ITEMS,
+        users=users,
+        current_user_id=session['user_id'],
+        active_tab='Settings',
+    )
+
+
+@app.route('/admin/settings/users/<int:user_id>/role', methods=['POST'])
+@admin_required
+def admin_settings_role(user_id):
+    if not _valid_csrf(request.form.get('csrf_token')):
+        abort(403)
+
+    if user_id == session['user_id']:
+        flash('You cannot change your own role.', 'error')
+        return redirect(url_for('admin_settings'))
+
+    target = get_member_by_id(user_id)
+    if not target:
+        flash('User not found.', 'error')
+        return redirect(url_for('admin_settings'))
+
+    new_role = 'user' if target['role'] == 'admin' else 'admin'
+
+    if new_role == 'user' and count_admins() <= 1:
+        flash('Cannot demote the last remaining admin.', 'error')
+        return redirect(url_for('admin_settings'))
+
+    try:
+        update_member_role(user_id, new_role)
+        flash(f"{target['name']}'s role updated to {new_role}.", 'success')
+    except sqlite3.Error:
+        app.logger.exception('Role update failed')
+        flash('Action failed. Please try again.', 'error')
+    return redirect(url_for('admin_settings'))
+
+
+@app.route('/admin/settings/users/<int:user_id>/password', methods=['POST'])
+@admin_required
+def admin_settings_password(user_id):
+    if not _valid_csrf(request.form.get('csrf_token')):
+        abort(403)
+
+    target = get_member_by_id(user_id)
+    if not target:
+        flash('User not found.', 'error')
+        return redirect(url_for('admin_settings'))
+
+    new_password     = request.form.get('new_password', '')
+    confirm_password = request.form.get('confirm_password', '')
+
+    if not new_password or not confirm_password:
+        flash('Both password fields are required.', 'error')
+        return redirect(url_for('admin_settings'))
+    if len(new_password) < 6 or len(new_password) > 200:
+        flash('Password must be between 6 and 200 characters.', 'error')
+        return redirect(url_for('admin_settings'))
+    if new_password != confirm_password:
+        flash('Passwords do not match.', 'error')
+        return redirect(url_for('admin_settings'))
+
+    try:
+        update_member_password(user_id, generate_password_hash(new_password))
+        flash(f"Password reset for {target['name']}.", 'success')
+    except sqlite3.Error:
+        app.logger.exception('Password update failed')
+        flash('Action failed. Please try again.', 'error')
+    return redirect(url_for('admin_settings'))
+
+
+@app.route('/admin/settings/users/<int:user_id>/delete', methods=['POST'])
+@admin_required
+def admin_settings_delete(user_id):
+    if not _valid_csrf(request.form.get('csrf_token')):
+        abort(403)
+
+    if user_id == session['user_id']:
+        flash('You cannot delete your own account.', 'error')
+        return redirect(url_for('admin_settings'))
+
+    target = get_member_by_id(user_id)
+    if not target:
+        flash('User not found.', 'error')
+        return redirect(url_for('admin_settings'))
+
+    try:
+        delete_member(user_id)
+        flash(f"Deleted {target['name']}.", 'success')
+    except sqlite3.Error:
+        app.logger.exception('Delete failed')
+        flash('Action failed. Please try again.', 'error')
+    return redirect(url_for('admin_settings'))
 
 
 @app.route('/member/dashboard')
