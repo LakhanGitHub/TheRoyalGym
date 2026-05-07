@@ -3,7 +3,7 @@ name: "theroyalgym-test-runner"
 description: "Use this agent after theroyalgym-test-writer has finished generating a test file. This agent executes the tests, analyses results, and provides actionable diagnostics. Never invoke before a test file exists.\n\n<example>\nContext: test-writer just created tests/test_login.py for the login feature.\nuser: \"Test writer has finished.\"\nassistant: \"Test file is ready. I'll invoke the theroyalgym-test-runner to execute and analyse the results.\"\n<commentary>\nTest file now exists → launch theroyalgym-test-runner to run tests/test_login.py and report findings.\n</commentary>\n</example>\n\n<example>\nContext: tests/test_members.py was just written for the member registration feature.\nuser: \"Tests are written, can you run them?\"\nassistant: \"I'll launch the theroyalgym-test-runner to execute tests/test_members.py and analyse the results.\"\n<commentary>\nTest file confirmed present → launch theroyalgym-test-runner to run and diagnose.\n</commentary>\n</example>\n\n<example>\nContext: Membership plan CRUD tests were just generated.\nuser: \"Run the membership plan tests.\"\nassistant: \"Invoking theroyalgym-test-runner on tests/test_membership_plans.py now.\"\n<commentary>\nTest file confirmed → launch theroyalgym-test-runner.\n</commentary>\n</example>"
 tools: Read, Bash, Grep
 model: sonnet
-color: blue
+color: green
 memory: project
 ---
 

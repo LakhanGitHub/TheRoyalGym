@@ -18,6 +18,13 @@
     --accent-gold:        #F5A623;
     --accent-gold-hover:  #d9911a;
 
+    /* Social brand colors (placeholders for footer social icons) */
+    --brand-whatsapp:       #25D366;
+    --brand-youtube:        #FF0000;
+    --brand-facebook:       #1877F2;
+    --brand-instagram:      #E4405F;
+    --brand-instagram-grad: linear-gradient(45deg, #F58529 0%, #DD2A7B 45%, #8134AF 75%, #515BD4 100%);
+
     /* Info / contact */
     --info-card-bg:       #1a1a1a;
     --info-card-border:   rgba(255,255,255,.10);
@@ -316,6 +323,55 @@ button { font-family: var(--font); }
     max-width: 280px;
 }
 
+.footer-socials {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.footer-social-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    transition: var(--t);
+}
+.footer-social-link:hover {
+    color: var(--accent-gold);
+    border-color: var(--accent-gold);
+}
+
+.footer-social-whatsapp  { color: var(--brand-whatsapp);  border-color: var(--brand-whatsapp); }
+.footer-social-youtube   { color: var(--brand-youtube);   border-color: var(--brand-youtube); }
+.footer-social-facebook  { color: var(--brand-facebook);  border-color: var(--brand-facebook); }
+.footer-social-instagram { color: var(--brand-instagram); border-color: var(--brand-instagram); }
+
+.footer-social-whatsapp:hover {
+    color: var(--white);
+    background: var(--brand-whatsapp);
+    border-color: var(--brand-whatsapp);
+}
+.footer-social-youtube:hover {
+    color: var(--white);
+    background: var(--brand-youtube);
+    border-color: var(--brand-youtube);
+}
+.footer-social-facebook:hover {
+    color: var(--white);
+    background: var(--brand-facebook);
+    border-color: var(--brand-facebook);
+}
+.footer-social-instagram:hover {
+    color: var(--white);
+    background: var(--brand-instagram-grad);
+    border-color: transparent;
+}
+
 .footer-heading {
     color: var(--text-primary);
     font-size: 0.95rem;
@@ -396,6 +452,12 @@ button { font-family: var(--font); }
     opacity: .55;
 }
 
+.footer-bottom-links {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
 /* Footer responsive */
 @media (max-width: 1024px) {
     .footer-grid {
@@ -412,11 +474,12 @@ button { font-family: var(--font); }
         text-align: center;
     }
     .footer-brand,
+    .footer-socials,
     .footer-contact-line { justify-content: center; }
     .footer-tagline { max-width: none; margin: 0 auto; }
     .footer-links { align-items: center; }
     .footer-bottom { flex-direction: column; gap: 6px; }
-    .footer-bottom-sep { display: none; }
+    .footer-bottom > .footer-bottom-sep { display: none; }
 }
 
 /* ===== TERMS PAGE ===== */

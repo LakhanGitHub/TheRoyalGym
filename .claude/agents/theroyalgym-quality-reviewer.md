@@ -3,7 +3,7 @@ name: "theroyalgym-quality-reviewer"
 description: "Use this agent when a Royal Gym feature has been written or modified. This agent runs alongside theroyalgym-security-reviewer and focuses on code quality in the changed code — architecture, naming, UX consistency, and maintainability. It does not review security concerns.\n\n<example>\nContext: The user just implemented the member registration route and templates.\nuser: \"Add a registration flow for new gym members\"\nassistant: [implements registration route, template, db helper]\n<commentary>\nNew feature touching route + template + db layer → launch theroyalgym-quality-reviewer alongside theroyalgym-security-reviewer to verify code structure, UX consistency, and naming conventions.\n</commentary>\nassistant: \"Let me run the quality reviewer on this registration feature now.\"\n</example>\n\n<example>\nContext: Admin membership plan management page was added.\nuser: \"Build a page where admins can create and edit membership plans\"\nassistant: [implements the feature]\n<commentary>\nAdmin CRUD feature → launch theroyalgym-quality-reviewer to audit route organisation, form UX, empty states, and db helper design.\n</commentary>\nassistant: \"Running the quality reviewer on the membership plan feature.\"\n</example>"
 tools: Read, Grep, Glob, Bash
 model: sonnet
-color: green
+color: purple
 memory: project
 ---
 
