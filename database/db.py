@@ -39,6 +39,17 @@ def init_db():
                 message TEXT NOT NULL,
                 submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+
+            CREATE TABLE IF NOT EXISTS membership_plans (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                duration_months INTEGER NOT NULL,
+                fee REAL NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_membership_plans_name
+                ON membership_plans(name);
         ''')
         if not _column_exists(conn, 'members', 'role'):
             conn.execute("ALTER TABLE members ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
@@ -70,6 +81,19 @@ def seed_db():
                         'password_hash': generate_password_hash(seed['password']),
                         'role': seed['role'],
                     }
+                )
+
+        plan_seeds = [
+            {'name': 'Monthly', 'duration_months': 1,  'fee': 1200.00},
+        ]
+        for plan in plan_seeds:
+            existing = conn.execute(
+                'SELECT id FROM membership_plans WHERE name = ?', (plan['name'],)
+            ).fetchone()
+            if not existing:
+                conn.execute(
+                    'INSERT INTO membership_plans (name, duration_months, fee) VALUES (?, ?, ?)',
+                    (plan['name'], plan['duration_months'], plan['fee'])
                 )
         conn.commit()
     finally:
@@ -176,6 +200,61 @@ def count_admins():
             "SELECT COUNT(*) AS c FROM members WHERE role = 'admin'"
         ).fetchone()
         return row['c'] if row else 0
+    finally:
+        conn.close()
+
+
+def get_all_plans():
+    conn = get_db()
+    try:
+        return conn.execute(
+            'SELECT id, name, duration_months, fee, created_at FROM membership_plans ORDER BY duration_months ASC, id ASC'
+        ).fetchall()
+    finally:
+        conn.close()
+
+
+def get_plan_by_id(plan_id):
+    conn = get_db()
+    try:
+        return conn.execute(
+            'SELECT id, name, duration_months, fee, created_at FROM membership_plans WHERE id = ?',
+            (plan_id,)
+        ).fetchone()
+    finally:
+        conn.close()
+
+
+def create_plan(name, duration_months, fee):
+    conn = get_db()
+    try:
+        cur = conn.execute(
+            'INSERT INTO membership_plans (name, duration_months, fee) VALUES (?, ?, ?)',
+            (name, duration_months, fee)
+        )
+        conn.commit()
+        return cur.lastrowid
+    finally:
+        conn.close()
+
+
+def update_plan(plan_id, name, duration_months, fee):
+    conn = get_db()
+    try:
+        conn.execute(
+            'UPDATE membership_plans SET name = ?, duration_months = ?, fee = ? WHERE id = ?',
+            (name, duration_months, fee, plan_id)
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def delete_plan(plan_id):
+    conn = get_db()
+    try:
+        conn.execute('DELETE FROM membership_plans WHERE id = ?', (plan_id,))
+        conn.commit()
     finally:
         conn.close()
 

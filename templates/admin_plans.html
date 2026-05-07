@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Membership Plans &mdash; The Royal Gym{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="dash-section">
+    <div class="dash-container">
+
+        {% include "_admin_tabs.html" %}
+
+        <section class="dash-panel plans-panel">
+            <header class="plans-header">
+                <div class="plans-heading">
+                    <span class="plans-crown" aria-hidden="true">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 7l4 4l5 -7l5 7l4 -4v11a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1z"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <h1 class="plans-title">Membership Plans</h1>
+                        <p class="plans-subtitle">Create, update, and manage gym membership packages.</p>
+                    </div>
+                </div>
+                <a href="{{ url_for('admin_plans_new') }}" class="plans-add-btn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M12 5v14"/>
+                        <path d="M5 12h14"/>
+                    </svg>
+                    Add Plan
+                </a>
+            </header>
+
+            <div class="dash-table-wrap">
+                <table class="dash-table plans-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Duration</th>
+                            <th>Fee</th>
+                            <th class="plans-th-actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in plans %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <div class="plan-name">
+                                    <strong>{{ p.name }}</strong>
+                                    <span class="plan-tag" aria-hidden="true">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M3 12l8.5 8.5a1.5 1.5 0 0 0 2 0l7 -7a1.5 1.5 0 0 0 0 -2l-8.5 -8.5h-7a2 2 0 0 0 -2 2v7"/>
+                                            <circle cx="7.5" cy="7.5" r="1.5"/>
+                                        </svg>
+                                        Plan
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="plan-duration">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <circle cx="12" cy="12" r="9"/>
+                                        <path d="M12 7v5l3 2"/>
+                                    </svg>
+                                    {{ p.duration_months }} {{ 'month' if p.duration_months == 1 else 'months' }}
+                                </span>
+                            </td>
+                            <td class="plan-fee">&#8377; {{ '%.2f'|format(p.fee) }}</td>
+                            <td>
+                                <div class="user-actions">
+                                    <a class="user-action-btn user-action-btn-warning" href="{{ url_for('admin_plans_edit', plan_id=p.id) }}">Edit</a>
+                                    <form method="post"
+                                          action="{{ url_for('admin_plans_delete', plan_id=p.id) }}"
+                                          data-confirm="Delete plan &quot;{{ p.name }}&quot;? This cannot be undone.">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="user-action-btn user-action-btn-danger">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="dash-empty">No plans defined yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </div>
+</section>
+{% endblock %}
