@@ -266,40 +266,37 @@ document.querySelectorAll('form[data-confirm]').forEach((form) => {
     search.addEventListener('change', applyFilter);
 })();
 
-/* ===== Members list: delete confirmation modal ===== */
-(function () {
-    const modal = document.getElementById('deleteMemberModal');
-    const form  = document.getElementById('deleteMemberForm');
+/* ===== Generic delete-confirmation modal ===== */
+function wireDeleteModal(modalId, formId, dataPrefix, urlBuilder, fields) {
+    const modal = document.getElementById(modalId);
+    const form  = document.getElementById(formId);
     if (!modal || !form) return;
 
-    const nameEl  = modal.querySelector('#deleteMemberName');
-    const emailEl = modal.querySelector('#deleteMemberEmail');
     const supportsDialog = typeof modal.showModal === 'function';
+    const fieldEls = {};
+    Object.keys(fields || {}).forEach((key) => {
+        fieldEls[key] = modal.querySelector(fields[key]);
+    });
 
     function openModal() {
-        if (supportsDialog) {
-            modal.showModal();
-        } else {
-            modal.setAttribute('open', '');
-        }
+        if (supportsDialog) modal.showModal();
+        else modal.setAttribute('open', '');
     }
-
     function closeModal() {
-        if (supportsDialog && modal.open) {
-            modal.close();
-        } else {
-            modal.removeAttribute('open');
-        }
+        if (supportsDialog && modal.open) modal.close();
+        else modal.removeAttribute('open');
     }
 
-    document.querySelectorAll('[data-delete-member-id]').forEach((btn) => {
+    document.querySelectorAll('[data-delete-' + dataPrefix + '-id]').forEach((btn) => {
         btn.addEventListener('click', () => {
-            const id    = btn.dataset.deleteMemberId;
-            const name  = btn.dataset.deleteMemberName  || 'this member';
-            const email = btn.dataset.deleteMemberEmail || '';
-            form.setAttribute('action', '/admin/members/' + encodeURIComponent(id) + '/delete');
-            if (nameEl)  nameEl.textContent  = name;
-            if (emailEl) emailEl.textContent = email;
+            const id = btn.dataset['delete' + dataPrefix.charAt(0).toUpperCase() + dataPrefix.slice(1) + 'Id'];
+            form.setAttribute('action', urlBuilder(id));
+            Object.keys(fieldEls).forEach((key) => {
+                const el = fieldEls[key];
+                if (!el) return;
+                const dsKey = 'delete' + dataPrefix.charAt(0).toUpperCase() + dataPrefix.slice(1) + key.charAt(0).toUpperCase() + key.slice(1);
+                el.textContent = btn.dataset[dsKey] || '';
+            });
             openModal();
         });
     });
@@ -307,18 +304,76 @@ document.querySelectorAll('form[data-confirm]').forEach((form) => {
     modal.querySelectorAll('[data-modal-close]').forEach((el) => {
         el.addEventListener('click', closeModal);
     });
-
-    /* Click on the dialog's backdrop closes it. */
     modal.addEventListener('click', (e) => {
         if (e.target === modal) closeModal();
     });
-
-    /* Disable the Delete button while the POST is in flight. */
     form.addEventListener('submit', () => {
         if (typeof lockDestructiveButton === 'function') {
             lockDestructiveButton(form);
         }
     });
+}
+
+/* ----- Members list: delete modal ----- */
+wireDeleteModal(
+    'deleteMemberModal', 'deleteMemberForm', 'member',
+    (id) => '/admin/members/' + encodeURIComponent(id) + '/delete',
+    { name: '#deleteMemberName', email: '#deleteMemberEmail' }
+);
+
+/* ----- Payments list: delete modal ----- */
+wireDeleteModal(
+    'deletePaymentModal', 'deletePaymentForm', 'payment',
+    (id) => '/admin/payments/' + encodeURIComponent(id) + '/delete',
+    { label: '#deletePaymentLabel', meta: '#deletePaymentMeta' }
+);
+
+/* ===== Payments list: search + status filter ===== */
+(function () {
+    const tbody    = document.querySelector('.payments-table tbody');
+    const search   = document.getElementById('paymentSearch');
+    const statusEl = document.getElementById('paymentStatus');
+    const resetBtn = document.getElementById('paymentFilterReset');
+    const empty    = document.getElementById('paymentSearchEmpty');
+    if (!tbody || (!search && !statusEl)) return;
+
+    const rows = Array.from(tbody.querySelectorAll('tr.payment-row'));
+    if (rows.length === 0) return;
+
+    function applyFilter() {
+        const q       = (search?.value || '').trim().toLowerCase();
+        const wantSt  = (statusEl?.value || '').trim().toLowerCase();
+
+        let visible = 0;
+        rows.forEach((row) => {
+            const name   = row.dataset.searchName  || '';
+            const email  = row.dataset.searchEmail || '';
+            const status = row.dataset.status      || '';
+
+            const matchesQuery  = !q || name.includes(q) || email.includes(q);
+            const matchesStatus = !wantSt || status === wantSt;
+            const show = matchesQuery && matchesStatus;
+            row.hidden = !show;
+            if (show) visible++;
+        });
+
+        if (empty) empty.hidden = visible > 0;
+    }
+
+    [search, statusEl].forEach((el) => {
+        if (!el) return;
+        el.addEventListener('input',  applyFilter);
+        el.addEventListener('change', applyFilter);
+    });
+
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            if (search)   search.value   = '';
+            if (statusEl) statusEl.value = '';
+            applyFilter();
+            if (search) search.focus();
+        });
+    }
 })();
 
 /* ===== Add Member form: inline validation, +91 mobile masking, submit gating ===== */

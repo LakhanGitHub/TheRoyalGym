@@ -151,6 +151,60 @@
 .plan-pill-quarterly  { background: var(--plan-quarterly-bg); color: var(--plan-quarterly-fg); border-color: var(--plan-quarterly-bd); }
 .plan-pill-yearly     { background: var(--plan-yearly-bg);    color: var(--plan-yearly-fg);    border-color: var(--plan-yearly-bd); }
 
+/* Payment status badge */
+.status-pill {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    background: var(--surface-2);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+.status-pill-paid    { background: var(--status-paid-bg);    color: var(--status-paid-fg);    border-color: var(--status-paid-bd); }
+.status-pill-pending { background: var(--status-pending-bg); color: var(--status-pending-fg); border-color: var(--status-pending-bd); }
+
+/* Payment method badge */
+.method-pill {
+    display: inline-block;
+    font-size: 0.66rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    background: var(--surface-2);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+.method-pill-cash   { background: var(--method-cash-bg);   color: var(--method-cash-fg);   border-color: var(--method-cash-bd); }
+.method-pill-upi    { background: var(--method-upi-bg);    color: var(--method-upi-fg);    border-color: var(--method-upi-bd); }
+.method-pill-card   { background: var(--method-card-bg);   color: var(--method-card-fg);   border-color: var(--method-card-bd); }
+.method-pill-online { background: var(--method-online-bg); color: var(--method-online-fg); border-color: var(--method-online-bd); }
+
+/* Payments table — currency cell + clipped notes */
+.amount-cell {
+    color: var(--text-primary);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.payment-notes {
+    display: inline-block;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+}
+
 /* Profile card */
 .profile-card {
     padding: 28px 26px;
@@ -1162,6 +1216,11 @@
     font-size: 0.82rem;
     padding: 0;
     min-width: 122px;
+}
+/* Force readable contrast on the native option popup (status filter etc.) */
+select.member-daterange-input option {
+    background: var(--surface);
+    color: var(--text-primary);
 }
 .member-daterange-input:focus { outline: none; }
 .member-daterange-input.is-invalid {

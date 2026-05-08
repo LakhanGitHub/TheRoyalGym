@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}Payments &mdash; The Royal Gym{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="dash-section">
+    <div class="dash-container">
+
+        {% include "_admin_tabs.html" %}
+
+        <section class="dash-panel plans-panel members-panel payments-panel">
+            <header class="plans-header">
+                <div class="plans-heading">
+                    <span class="plans-crown" aria-hidden="true">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="6" width="18" height="13" rx="2"/>
+                            <path d="M3 10h18"/>
+                            <path d="M7 15h2"/>
+                            <path d="M12 15h2"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <h1 class="plans-title">Payments</h1>
+                        <p class="plans-subtitle">Track paid and pending invoices for every member.</p>
+                    </div>
+                </div>
+                <a href="{{ url_for('admin_payments_new') }}" class="plans-add-btn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M12 5v14"/>
+                        <path d="M5 12h14"/>
+                    </svg>
+                    Record Payment
+                </a>
+            </header>
+
+            <div class="member-toolbar" role="search" aria-label="Filter payments">
+                <label class="member-search" for="paymentSearch">
+                    <span class="member-search-icon" aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="7"/>
+                            <path d="M21 21l-5 -5"/>
+                        </svg>
+                    </span>
+                    <input type="search" id="paymentSearch" name="q"
+                           class="member-search-input"
+                           placeholder="Search by member name or email&hellip;"
+                           autocomplete="off"
+                           aria-label="Search payments by member name or email">
+                </label>
+
+                <div class="member-daterange">
+                    <label class="member-daterange-field" for="paymentStatus">
+                        <span class="member-daterange-label">Status</span>
+                        <select id="paymentStatus" class="member-daterange-input" aria-label="Filter by payment status">
+                            <option value="">All</option>
+                            {% for s in payment_statuses %}
+                            <option value="{{ s }}">{{ s|capitalize }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <button type="button" id="paymentFilterReset" class="member-daterange-reset" title="Clear filters">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M18 6l-12 12"/>
+                            <path d="M6 6l12 12"/>
+                        </svg>
+                        <span>Reset</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="dash-table-wrap">
+                <table class="dash-table plans-table members-table payments-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Member</th>
+                            <th>Plan</th>
+                            <th>Amount</th>
+                            <th>Joining Date</th>
+                            <th>Payment Date</th>
+                            <th>Mode</th>
+                            <th>Status</th>
+                            <th>Notes</th>
+                            <th class="plans-th-actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in payments %}
+                        <tr class="member-row payment-row"
+                            data-search-name="{{ p.member_name|lower }}"
+                            data-search-email="{{ (p.member_email or '')|lower }}"
+                            data-status="{{ p.status }}">
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <div class="plan-name">
+                                    <strong>{{ p.member_name }}</strong>
+                                    <span class="plan-tag" aria-hidden="true">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="8" r="4"/>
+                                            <path d="M4 21v-1a6 6 0 0 1 6 -6h4a6 6 0 0 1 6 6v1"/>
+                                        </svg>
+                                        {{ p.member_email }}
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                {% if p.plan_name %}
+                                <span class="plan-pill plan-pill-{{ p.plan_name|lower|replace(' ', '-') }}">{{ p.plan_name }}</span>
+                                {% else %}&mdash;{% endif %}
+                            </td>
+                            <td><span class="amount-cell">&#8377; {{ '%.2f'|format(p.amount) }}</span></td>
+                            <td>{{ p.member_join_date or '—' }}</td>
+                            <td>{{ p.paid_on }}</td>
+                            <td>
+                                <span class="method-pill method-pill-{{ p.method }}">
+                                    {% if p.method == 'upi' %}UPI{% else %}{{ p.method|capitalize }}{% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="status-pill status-pill-{{ p.status }}">{{ p.status|capitalize }}</span>
+                            </td>
+                            <td>
+                                {% if p.notes %}
+                                <span class="payment-notes" title="{{ p.notes }}">{{ p.notes[:40] }}{% if p.notes|length > 40 %}&hellip;{% endif %}</span>
+                                {% else %}&mdash;{% endif %}
+                            </td>
+                            <td>
+                                <div class="user-actions member-actions">
+                                    <a href="{{ url_for('admin_payments_edit', payment_id=p.id) }}"
+                                       class="member-icon-btn member-icon-btn-edit"
+                                       title="Edit Payment"
+                                       aria-label="Edit payment {{ p.id }}">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"/>
+                                            <path d="M13.5 6.5l4 4"/>
+                                        </svg>
+                                    </a>
+                                    <button type="button"
+                                            class="member-icon-btn member-icon-btn-delete"
+                                            title="Delete Payment"
+                                            aria-label="Delete payment {{ p.id }}"
+                                            data-delete-payment-id="{{ p.id }}"
+                                            data-delete-payment-label="#{{ p.id }} — {{ p.member_name }}"
+                                            data-delete-payment-meta="&#8377; {{ '%.2f'|format(p.amount) }} on {{ p.paid_on }}">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M4 7h16"/>
+                                            <path d="M10 11v6"/>
+                                            <path d="M14 11v6"/>
+                                            <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/>
+                                            <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="10" class="dash-empty">No payments yet. Click <strong>+ Record Payment</strong> to add one.</td>
+                        </tr>
+                        {% endfor %}
+                        <tr id="paymentSearchEmpty" class="member-search-empty" hidden>
+                            <td colspan="10" class="dash-empty">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <circle cx="11" cy="11" r="7"/>
+                                    <path d="M21 21l-5 -5"/>
+                                </svg>
+                                No payments match the current filters.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Delete confirmation modal -->
+        <dialog class="member-modal" id="deletePaymentModal" aria-labelledby="deletePaymentTitle">
+            <form class="member-modal-form" method="post" id="deletePaymentForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="member-modal-icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 9v4"/><path d="M12 17h.01"/>
+                        <path d="M10.29 3.86l-8.18 14.14a2 2 0 0 0 1.71 3h16.36a2 2 0 0 0 1.71 -3l-8.18 -14.14a2 2 0 0 0 -3.42 0z"/>
+                    </svg>
+                </div>
+                <h2 class="member-modal-title" id="deletePaymentTitle">Delete this payment?</h2>
+                <p class="member-modal-body">
+                    You&rsquo;re about to permanently remove payment
+                    <strong id="deletePaymentLabel">this payment</strong>
+                    (<span id="deletePaymentMeta"></span>). This cannot be undone.
+                </p>
+                <div class="member-modal-actions">
+                    <button type="button" class="user-action-btn" data-modal-close>Cancel</button>
+                    <button type="submit" class="user-action-btn user-action-btn-danger">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M4 7h16"/>
+                            <path d="M10 11v6"/>
+                            <path d="M14 11v6"/>
+                            <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/>
+                            <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/>
+                        </svg>
+                        Delete payment
+                    </button>
+                </div>
+            </form>
+        </dialog>
+
+    </div>
+</section>
+{% endblock %}

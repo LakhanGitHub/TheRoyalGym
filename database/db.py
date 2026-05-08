@@ -50,6 +50,21 @@ def init_db():
 
             CREATE UNIQUE INDEX IF NOT EXISTS idx_membership_plans_name
                 ON membership_plans(name);
+
+            CREATE TABLE IF NOT EXISTS payments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+                plan_id   INTEGER REFERENCES membership_plans(id) ON DELETE SET NULL,
+                amount    REAL NOT NULL,
+                paid_on   TEXT NOT NULL,
+                method    TEXT NOT NULL,
+                status    TEXT NOT NULL DEFAULT 'paid',
+                notes     TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_payments_member_id ON payments(member_id);
+            CREATE INDEX IF NOT EXISTS idx_payments_paid_on   ON payments(paid_on);
         ''')
         if not _column_exists(conn, 'membership_plans', 'duration_days'):
             conn.execute('ALTER TABLE membership_plans ADD COLUMN duration_days INTEGER NOT NULL DEFAULT 0')
@@ -358,6 +373,89 @@ def delete_plan(plan_id):
     try:
         conn.execute('DELETE FROM membership_plans WHERE id = ?', (plan_id,))
         conn.commit()
+    finally:
+        conn.close()
+
+
+_PAYMENT_COLUMNS = (
+    'p.id, p.member_id, p.plan_id, p.amount, p.paid_on, p.method, '
+    'p.status, p.notes, p.created_at, '
+    'm.name AS member_name, m.email AS member_email, '
+    'm.join_date AS member_join_date, '
+    'pl.name AS plan_name, pl.duration_months AS plan_duration, '
+    'pl.duration_days AS plan_duration_days'
+)
+
+
+def get_all_payments(member_id=None):
+    sql = (
+        f'SELECT {_PAYMENT_COLUMNS} FROM payments p '
+        'JOIN members m ON m.id = p.member_id '
+        'LEFT JOIN membership_plans pl ON pl.id = p.plan_id'
+    )
+    params = ()
+    if member_id is not None:
+        sql += ' WHERE p.member_id = ?'
+        params = (member_id,)
+    sql += ' ORDER BY p.paid_on DESC, p.id DESC'
+
+    conn = get_db()
+    try:
+        return conn.execute(sql, params).fetchall()
+    finally:
+        conn.close()
+
+
+def get_payment_by_id(payment_id):
+    conn = get_db()
+    try:
+        return conn.execute(
+            f'SELECT {_PAYMENT_COLUMNS} FROM payments p '
+            'JOIN members m ON m.id = p.member_id '
+            'LEFT JOIN membership_plans pl ON pl.id = p.plan_id '
+            'WHERE p.id = ?',
+            (payment_id,)
+        ).fetchone()
+    finally:
+        conn.close()
+
+
+def create_payment(member_id, plan_id, amount, paid_on, method, status, notes):
+    conn = get_db()
+    try:
+        cur = conn.execute(
+            'INSERT INTO payments '
+            '(member_id, plan_id, amount, paid_on, method, status, notes) '
+            'VALUES (?, ?, ?, ?, ?, ?, ?)',
+            (member_id, plan_id, amount, paid_on, method, status, notes)
+        )
+        conn.commit()
+        return cur.lastrowid
+    finally:
+        conn.close()
+
+
+def update_payment(payment_id, member_id, plan_id, amount, paid_on, method, status, notes):
+    conn = get_db()
+    try:
+        cur = conn.execute(
+            'UPDATE payments SET member_id = ?, plan_id = ?, amount = ?, '
+            'paid_on = ?, method = ?, status = ?, notes = ? WHERE id = ?',
+            (member_id, plan_id, amount, paid_on, method, status, notes, payment_id)
+        )
+        conn.commit()
+        return cur.rowcount
+    finally:
+        conn.close()
+
+
+def delete_payment(payment_id):
+    """Returns the number of rows deleted (0 if the id no longer exists)."""
+    conn = get_db()
+    try:
+        cur = conn.execute('DELETE FROM payments WHERE id = ?', (payment_id,))
+        conn.commit()
+        return cur.rowcount
     finally:
         conn.close()
 
