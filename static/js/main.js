@@ -148,21 +148,26 @@ document.querySelectorAll('form[data-confirm]').forEach((form) => {
     const searchInput = document.getElementById('memberSearch');
     const fromInput   = document.getElementById('memberFrom');
     const toInput     = document.getElementById('memberTo');
+    const expiryInput = document.getElementById('memberExpiry');
     const resetBtn    = document.getElementById('memberFilterReset');
     const emptyRow    = document.getElementById('memberSearchEmpty');
     const dateError   = document.getElementById('memberDateError');
-    if (!tbody || (!searchInput && !fromInput && !toInput)) return;
+    if (!tbody || (!searchInput && !fromInput && !toInput && !expiryInput)) return;
 
     const rows = Array.from(tbody.querySelectorAll('tr.member-row'));
     if (rows.length === 0) return;
 
     const digitsOnly = (s) => (s || '').replace(/\D/g, '');
 
+    const RX_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
     function applyFilter() {
-        const q       = (searchInput?.value || '').trim().toLowerCase();
-        const qDigits = digitsOnly(q);
-        const fromVal = fromInput?.value || '';
-        const toVal   = toInput?.value   || '';
+        const q          = (searchInput?.value || '').trim().toLowerCase();
+        const qDigits    = digitsOnly(q);
+        const fromVal    = fromInput?.value   || '';
+        const toVal      = toInput?.value     || '';
+        const expiryRaw  = expiryInput?.value || '';
+        const expiryVal  = RX_DATE.test(expiryRaw) ? expiryRaw : '';
 
         const dateInvalid = !!(fromVal && toVal && fromVal > toVal);
         if (dateError) {
@@ -181,6 +186,7 @@ document.querySelectorAll('form[data-confirm]').forEach((form) => {
             const name   = row.dataset.searchName   || '';
             const mobile = row.dataset.searchMobile || '';
             const join   = row.dataset.joinDate     || '';
+            const expire = row.dataset.expireDate   || '';
 
             let matchesQuery = !q;
             if (q) {
@@ -192,7 +198,10 @@ document.querySelectorAll('form[data-confirm]').forEach((form) => {
             if (fromVal && (!join || join < fromVal)) inRange = false;
             if (toVal   && (!join || join > toVal))   inRange = false;
 
-            const show = matchesQuery && inRange;
+            let matchesExpiry = true;
+            if (expiryVal && expire !== expiryVal) matchesExpiry = false;
+
+            const show = matchesQuery && inRange && matchesExpiry;
             row.hidden = !show;
             if (show) visible++;
         });
@@ -200,7 +209,7 @@ document.querySelectorAll('form[data-confirm]').forEach((form) => {
         if (emptyRow) emptyRow.hidden = visible > 0 || dateInvalid;
     }
 
-    [searchInput, fromInput, toInput].forEach((el) => {
+    [searchInput, fromInput, toInput, expiryInput].forEach((el) => {
         if (!el) return;
         el.addEventListener('input',  applyFilter);
         el.addEventListener('change', applyFilter);
@@ -211,12 +220,38 @@ document.querySelectorAll('form[data-confirm]').forEach((form) => {
             if (searchInput) searchInput.value = '';
             if (fromInput)   fromInput.value   = '';
             if (toInput)     toInput.value     = '';
+            if (expiryInput) expiryInput.value = '';
             if (dateError)   dateError.textContent = '';
             [fromInput, toInput].forEach((el) => el && el.classList.remove('is-invalid'));
             applyFilter();
             if (searchInput) searchInput.focus();
         });
     }
+})();
+
+/* ===== Settings page: name/email filter ===== */
+(function () {
+    const search = document.getElementById('userSearch');
+    if (!search) return;
+    const rows = Array.from(document.querySelectorAll('tr.user-row'));
+    if (rows.length === 0) return;
+    const empty = document.getElementById('userSearchEmpty');
+
+    function applyFilter() {
+        const q = (search.value || '').trim().toLowerCase();
+        let visible = 0;
+        rows.forEach((row) => {
+            const name  = row.dataset.searchName  || '';
+            const email = row.dataset.searchEmail || '';
+            const show = !q || name.includes(q) || email.includes(q);
+            row.hidden = !show;
+            if (show) visible++;
+        });
+        if (empty) empty.hidden = visible > 0;
+    }
+
+    search.addEventListener('input',  applyFilter);
+    search.addEventListener('change', applyFilter);
 })();
 
 /* ===== Members list: delete confirmation modal ===== */

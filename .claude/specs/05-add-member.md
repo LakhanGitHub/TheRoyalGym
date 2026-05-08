@@ -271,8 +271,12 @@ All helpers use parameterised queries and the existing `get_db()` /
       mobile…").
     - `.member-daterange` — two `<input type="date">` (id
       `memberFrom` / `memberTo`) inside `.member-daterange-field`
-      pills, separated by an arrow, with a "Reset" button
-      (`#memberFilterReset`) that clears all three filters.
+      pills, separated by an arrow, plus a single `<input
+      type="date" id="memberExpiry">` inside a
+      `.member-daterange-field.member-daterange-field-expiry` pill
+      (gold calendar SVG prefix + "Expiry" label) that filters by
+      exact-match `plan_expire_date`. A "Reset" button
+      (`#memberFilterReset`) clears all four filters.
     - `<p class="member-toolbar-error" id="memberDateError">` for
       the inline "End date must be on or after start date." flag.
   - **Strong red expiry pill** (May 2026 update — see
@@ -330,17 +334,20 @@ No new dependencies. Flask, Werkzeug, and stdlib `sqlite3` + `datetime`.
   needed, add a `:root` variable in `style.css` first.
 - All templates `{% extends "base.html" %}`.
 - Vanilla JS only. Three blocks in `static/js/main.js`:
-  - **Members search + date-range filter**, gated by the presence
-    of `.members-table tbody`. Reads each row's
-    `data-search-name` (lowercased) and `data-search-mobile`
-    (digits-only) plus `data-join-date` to filter on input/change.
-    Search matches a substring of the name or, when the query
-    contains 2+ digits, a substring of the digits-only mobile.
-    Date inputs filter on `join_date`; if `from > to` the table is
-    hidden, both date pills get `.is-invalid`, and the inline
-    error span shows "End date must be on or after start date.".
-    A "Reset" button clears all three filters.
-    `#memberSearchEmpty` is shown when zero rows pass the filters.
+  - **Members search + date filters**, gated by the presence of
+    `.members-table tbody`. Reads each row's `data-search-name`
+    (lowercased), `data-search-mobile` (digits-only),
+    `data-join-date`, and `data-expire-date` to filter on
+    input/change. Search matches a substring of the name or, when
+    the query contains 2+ digits, a substring of the digits-only
+    mobile. The From/To date inputs filter on `join_date`; the
+    Expiry date input filters on exact-match `plan_expire_date`
+    (validated against `^\d{4}-\d{2}-\d{2}$` so a malformed value
+    doesn't break filtering). If `from > to` the table is hidden,
+    both range pills get `.is-invalid`, and the inline error span
+    shows "End date must be on or after start date.". A "Reset"
+    button clears all four filters. `#memberSearchEmpty` is shown
+    when zero rows pass the filters.
   - **Member form validation**, gated by `#addMemberForm`. Mirrors
     every server-side rule, masks the mobile input to lock the `+91`
     prefix, disables the Save button until the form is valid, and tags
@@ -576,7 +583,15 @@ No new dependencies. Flask, Werkzeug, and stdlib `sqlite3` + `datetime`.
       an open-ended range. Setting `from > to` blanks the list,
       tags both pills with `.is-invalid`, and surfaces "End date
       must be on or after start date." in `#memberDateError`. The
-      Reset button clears all three filters.
+      Reset button clears all four filters.
+- [ ] **Plan-expiry exact filter** — `#memberExpiry` opens the
+      native calendar. Selecting a date narrows the list to rows
+      whose `plan_expire_date` equals that date exactly. Clearing
+      it (or pressing Reset) restores the previous-filter view.
+      A malformed manual entry (e.g. `2026-13-99`) is silently
+      ignored; the filter only activates on a well-formed
+      `YYYY-MM-DD` value. Combines with name/mobile search and
+      the From/To range.
 - [ ] **Expiry pill colour** — a member whose `plan_expire_date`
       falls in the current calendar month shows the bold red
       `.expiry-warning` pill (background `#ef4444`, white bold

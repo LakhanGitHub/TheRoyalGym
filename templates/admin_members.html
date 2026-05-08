@@ -69,6 +69,17 @@
                         <span class="member-daterange-label">To</span>
                         <input type="date" id="memberTo" class="member-daterange-input" aria-label="End join date">
                     </label>
+                    <label class="member-daterange-field member-daterange-field-expiry" for="memberExpiry">
+                        <span class="member-daterange-icon" aria-hidden="true">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="4" y="5" width="16" height="16" rx="2"/>
+                                <path d="M16 3v4"/><path d="M8 3v4"/><path d="M4 11h16"/>
+                                <path d="M9 16h2"/><path d="M13 16h2"/>
+                            </svg>
+                        </span>
+                        <span class="member-daterange-label">Expiry</span>
+                        <input type="date" id="memberExpiry" class="member-daterange-input" aria-label="Filter by plan expiry date">
+                    </label>
                     <button type="button" id="memberFilterReset" class="member-daterange-reset" title="Clear filters">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M18 6l-12 12"/>
@@ -121,7 +132,8 @@ The Royal Gym Team
                         <tr class="member-row"
                             data-search-name="{{ m.name|lower }}"
                             data-search-mobile="{{ (m.mobile or '')|replace('+','')|replace(' ','')|replace('-','') }}"
-                            data-join-date="{{ m.join_date or '' }}">
+                            data-join-date="{{ m.join_date or '' }}"
+                            data-expire-date="{{ m.plan_expire_date or '' }}">
                             <td>{{ loop.index }}</td>
                             <td>
                                 <div class="plan-name">

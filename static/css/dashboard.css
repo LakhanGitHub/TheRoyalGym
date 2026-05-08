@@ -1152,6 +1152,17 @@
     color: var(--text-muted);
     font-size: 0.85rem;
 }
+.member-daterange-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-gold);
+    line-height: 0;
+    flex-shrink: 0;
+}
+.member-daterange-field-expiry .member-daterange-label {
+    color: var(--text-secondary);
+}
 .member-daterange-reset {
     display: inline-flex;
     align-items: center;
@@ -1320,6 +1331,19 @@
 .member-icon-btn:focus-visible {
     outline: 2px solid var(--accent-gold);
     outline-offset: 2px;
+}
+.member-icon-btn[disabled],
+.member-icon-btn[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: .45;
+}
+.member-icon-btn[disabled]:hover,
+.member-icon-btn[aria-disabled="true"]:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+    background: var(--surface-2);
 }
 
 /* Plan-expiry highlight pills */
