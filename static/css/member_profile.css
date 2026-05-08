@@ -1,0 +1,141 @@
+/* ==========================================================
+   Member Profile — page-specific styles
+   Reuses the dashboard design system. No raw hex values.
+   Only what dashboard.css does not already cover lives here.
+   ========================================================== */
+
+/* Compact 4-up tile row, scoped to this page only.
+   Always one row on desktop/tablet; collapses to 2x2 on phones. */
+.profile-tiles {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.profile-tiles .dash-tile {
+    padding: 14px 16px;
+    min-height: 96px;
+}
+
+.profile-tiles .dash-tile-value {
+    font-size: 1.5rem;
+    line-height: 1.2;
+}
+
+.profile-tiles .dash-tile-label {
+    font-size: 0.78rem;
+}
+
+.profile-tiles .dash-tile-link {
+    font-size: 0.78rem;
+}
+
+/* Keep the inherited vertical centering (top: 50% / translateY(-50%));
+   only shrink the icon size to match the smaller tile. */
+.profile-tiles .dash-tile-icon {
+    right: 12px;
+}
+
+.profile-tiles .dash-tile-icon svg {
+    width: 40px;
+    height: 40px;
+}
+
+@media (max-width: 720px) {
+    .profile-tiles {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 420px) {
+    .profile-tiles {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* Header: greeting on the left, Change Password panel on the right */
+.profile-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.profile-header .dash-header-top {
+    margin-bottom: 0;
+}
+
+/* Change Password collapsible panel anchored to the header right */
+.profile-pw-details {
+    margin-top: 0;
+    min-width: 280px;
+    max-width: 360px;
+    flex-shrink: 0;
+}
+
+.profile-pw-form {
+    margin-top: 8px;
+}
+
+/* My Profile — always-on inline edit rows
+   Override the generic .profile-field span color/weight so labels
+   inside an edit row read as labels, not as values. */
+.profile-edit-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.profile-edit-row .profile-edit-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.profile-edit-row-wide {
+    grid-column: 1 / -1;
+}
+
+/* The shared .user-pw-input fits text inputs; tune the textarea + select
+   so they line up visually with the rest of the dashboard tokens. */
+.profile-edit-form textarea.user-pw-input {
+    resize: vertical;
+    min-height: 56px;
+    font-family: inherit;
+}
+
+.profile-edit-form select.user-pw-input {
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+
+/* Save button row */
+.profile-edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 26px 22px;
+}
+
+/* Responsive: stack header pieces under 720px */
+@media (max-width: 720px) {
+    .profile-header {
+        flex-direction: column;
+    }
+
+    .profile-pw-details {
+        max-width: none;
+        width: 100%;
+    }
+
+    .profile-edit-actions {
+        justify-content: stretch;
+    }
+
+    .profile-edit-actions .plans-add-btn {
+        width: 100%;
+    }
+}

@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+{% block title %}My Profile &mdash; The Royal Gym{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/member_profile.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="dash-section">
+    <div class="dash-container">
+
+        <!-- Header: greeting + Change Password (single button on the right) -->
+        <div class="dash-header profile-header">
+            <div class="dash-header-top">
+                <div class="dash-avatar dash-avatar-member">
+                    {{ (member.name or 'M')[0]|upper }}
+                </div>
+                <div>
+                    <h1>
+                        Welcome, {{ member.name|title }}
+                        <span class="dash-role-tag dash-role-tag-member">Member</span>
+                    </h1>
+                    <p>Your membership profile at The Royal Gym.</p>
+                </div>
+            </div>
+
+            <details class="user-pw-details profile-pw-details">
+                <summary>Change Password</summary>
+                <form method="post"
+                      action="{{ url_for('member_profile_password') }}"
+                      class="user-pw-form profile-pw-form"
+                      autocomplete="off">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <label class="user-pw-label">
+                        <span>Current password</span>
+                        <input class="user-pw-input" type="password" name="old_password"
+                               minlength="6" maxlength="200" required autocomplete="current-password">
+                    </label>
+                    <label class="user-pw-label">
+                        <span>New password</span>
+                        <input class="user-pw-input" type="password" name="new_password"
+                               minlength="6" maxlength="200" required autocomplete="new-password">
+                    </label>
+                    <label class="user-pw-label">
+                        <span>Confirm new password</span>
+                        <input class="user-pw-input" type="password" name="confirm_password"
+                               minlength="6" maxlength="200" required autocomplete="new-password">
+                    </label>
+                    <button type="submit" class="user-action-btn">Save new password</button>
+                </form>
+            </details>
+        </div>
+
+        <!-- Top Summary Tiles -->
+        <section class="dash-tiles profile-tiles" aria-label="Membership summary">
+
+            <!-- 1. Current Plan (cyan) -->
+            <article class="dash-tile is-cyan">
+                <div class="dash-tile-value">{{ member.plan_name or '—' }}</div>
+                <h2 class="dash-tile-label">Current Plan</h2>
+                <span class="dash-tile-link" aria-disabled="true">
+                    {% if member.plan_id %}
+                        Duration: {{ format_plan_duration(member.plan_duration, member.plan_duration_days) }}
+                    {% else %}
+                        No active plan
+                    {% endif %}
+                </span>
+                <span class="dash-tile-icon" aria-hidden="true">
+                    <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="3" width="6" height="4" rx="1"/>
+                        <path d="M9 5h-3a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-3"/>
+                        <path d="M9 12h6"/>
+                        <path d="M9 16h4"/>
+                    </svg>
+                </span>
+            </article>
+
+            <!-- 2. Days Remaining (pink) -->
+            <article class="dash-tile is-pink">
+                <div class="dash-tile-value">
+                    {% if member.plan_id and not status_meta.is_expired %}
+                        {{ status_meta.days_remaining }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </div>
+                <h2 class="dash-tile-label">Days Remaining</h2>
+                <span class="dash-tile-link" aria-disabled="true">
+                    <span class="expiry-pill {{ status_meta.css_class }}">{{ status_meta.label }}</span>
+                </span>
+                <span class="dash-tile-icon" aria-hidden="true">
+                    <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="9"/>
+                        <path d="M12 7v5l3 2"/>
+                    </svg>
+                </span>
+            </article>
+
+            <!-- 3. Remaining Amount (purple) -->
+            <article class="dash-tile is-purple">
+                <div class="dash-tile-value">
+                    {% if remaining is not none %}
+                        &#8377; {{ '%.2f'|format(remaining) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </div>
+                <h2 class="dash-tile-label">Remaining Amount</h2>
+                <span class="dash-tile-link" aria-disabled="true">
+                    {% if remaining is not none %}
+                        Paid &#8377; {{ '%.2f'|format(total_paid) }} / Fee &#8377; {{ '%.2f'|format(plan_fee) }}
+                    {% else %}
+                        Paid &#8377; {{ '%.2f'|format(total_paid) }}
+                    {% endif %}
+                </span>
+                <span class="dash-tile-icon" aria-hidden="true">
+                    <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="6" width="18" height="14" rx="2"/>
+                        <path d="M3 10h18"/>
+                        <path d="M7 15h2"/>
+                    </svg>
+                </span>
+            </article>
+
+            <!-- 4. Plan Expiry Date (orange) -->
+            <article class="dash-tile is-orange">
+                <div class="dash-tile-value">{{ member.plan_expire_date or '—' }}</div>
+                <h2 class="dash-tile-label">Plan Expiry Date</h2>
+                <span class="dash-tile-link" aria-disabled="true">
+                    <span class="expiry-pill {{ status_meta.css_class }}">{{ status_meta.label }}</span>
+                </span>
+                <span class="dash-tile-icon" aria-hidden="true">
+                    <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="4" y="5" width="16" height="16" rx="2"/>
+                        <path d="M16 3v4"/>
+                        <path d="M8 3v4"/>
+                        <path d="M4 11h16"/>
+                    </svg>
+                </span>
+            </article>
+
+        </section>
+
+        <!-- Section 1: My Profile (always-on inline edit) -->
+        <div class="dash-panel">
+            <div class="dash-panel-header">
+                <span aria-hidden="true">&#128100;</span>
+                <h2>My Profile</h2>
+            </div>
+
+            <form method="post" action="{{ url_for('member_profile') }}" class="profile-edit-form" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="profile-card">
+                    <!-- Read-only fields -->
+                    <div class="profile-field">
+                        <label>Full Name</label>
+                        <span>{{ member.name|title }}</span>
+                    </div>
+                    <div class="profile-field">
+                        <label>Username</label>
+                        <span>{{ member.username or member.email }}</span>
+                    </div>
+                    <div class="profile-field">
+                        <label>Email Address</label>
+                        <span>{{ member.email }}</span>
+                    </div>
+                    <div class="profile-field">
+                        <label>Join Date</label>
+                        <span>{{ member.join_date or '—' }}</span>
+                    </div>
+
+                    <!-- Self-editable fields -->
+                    <label class="profile-field profile-edit-row">
+                        <span class="profile-edit-label">Mobile Number</span>
+                        <input class="user-pw-input" type="tel" name="mobile"
+                               value="{{ prefill.mobile }}"
+                               pattern="^\+91[6-9]\d{9}$"
+                               maxlength="13" required
+                               placeholder="+91XXXXXXXXXX">
+                    </label>
+                    <label class="profile-field profile-edit-row">
+                        <span class="profile-edit-label">Age</span>
+                        <input class="user-pw-input" type="number" name="age"
+                               value="{{ prefill.age }}"
+                               min="5" max="120"
+                               placeholder="—">
+                    </label>
+                    <label class="profile-field profile-edit-row">
+                        <span class="profile-edit-label">Gender</span>
+                        <select class="user-pw-input" name="gender">
+                            <option value="" {% if not prefill.gender %}selected{% endif %}>—</option>
+                            {% for g in gender_options %}
+                            <option value="{{ g }}" {% if prefill.gender == g %}selected{% endif %}>{{ g }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label class="profile-field profile-edit-row profile-edit-row-wide">
+                        <span class="profile-edit-label">Address</span>
+                        <textarea class="user-pw-input" name="address" rows="2"
+                                  maxlength="500"
+                                  placeholder="House / street / city">{{ prefill.address }}</textarea>
+                    </label>
+                </div>
+
+                <div class="profile-edit-actions">
+                    <button type="submit" class="plans-add-btn">Save changes</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Section 2: Membership Details -->
+        <div class="dash-panel">
+            <div class="dash-panel-header">
+                <span aria-hidden="true">&#127947;</span>
+                <h2>Membership Details</h2>
+            </div>
+
+            {% if member.plan_id %}
+            <div class="profile-card">
+                <div class="profile-field">
+                    <label>Plan Name</label>
+                    <span>
+                        <span class="plan-pill plan-pill-{{ member.plan_name|lower|replace(' ', '-') }}">{{ member.plan_name }}</span>
+                    </span>
+                </div>
+                <div class="profile-field">
+                    <label>Duration</label>
+                    <span>{{ format_plan_duration(member.plan_duration, member.plan_duration_days) }}</span>
+                </div>
+                <div class="profile-field">
+                    <label>Plan Amount</label>
+                    <span class="amount-cell">&#8377; {{ '%.2f'|format(plan_fee) }}</span>
+                </div>
+                <div class="profile-field">
+                    <label>Total Paid</label>
+                    <span class="amount-cell">&#8377; {{ '%.2f'|format(total_paid) }}</span>
+                </div>
+                <div class="profile-field">
+                    <label>Remaining Amount</label>
+                    <span class="amount-cell">
+                        {% if remaining is not none %}
+                            &#8377; {{ '%.2f'|format(remaining) }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="profile-field">
+                    <label>Start Date</label>
+                    <span>{{ member.join_date or '—' }}</span>
+                </div>
+                <div class="profile-field">
+                    <label>End Date</label>
+                    <span>{{ member.plan_expire_date or '—' }}</span>
+                </div>
+                <div class="profile-field">
+                    <label>Days Remaining</label>
+                    <span>
+                        {% if status_meta.is_expired %}
+                            Expired {{ status_meta.days_remaining }} day{{ '' if status_meta.days_remaining == 1 else 's' }} ago
+                        {% else %}
+                            {{ status_meta.days_remaining }} day{{ '' if status_meta.days_remaining == 1 else 's' }}
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="profile-field">
+                    <label>Membership Status</label>
+                    <span>
+                        <span class="expiry-pill {{ status_meta.css_class }}">{{ status_meta.label }}</span>
+                    </span>
+                </div>
+            </div>
+            {% else %}
+            <p class="dash-empty">No active plan. Please contact an administrator to enroll.</p>
+            {% endif %}
+        </div>
+
+        <!-- Recent Payments -->
+        <div class="dash-panel">
+            <div class="dash-panel-header">
+                <span aria-hidden="true">&#128179;</span>
+                <h2>Recent Payments</h2>
+            </div>
+
+            <div class="dash-table-wrap">
+                <table class="dash-table plans-table members-table payments-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Payment Date</th>
+                            <th>Mode</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in payments_recent %}
+                        <tr class="member-row payment-row">
+                            <td>{{ loop.index }}</td>
+                            <td>{{ p.paid_on }}</td>
+                            <td>
+                                <span class="method-pill method-pill-{{ p.method }}">
+                                    {% if p.method == 'upi' %}UPI{% else %}{{ p.method|capitalize }}{% endif %}
+                                </span>
+                            </td>
+                            <td><span class="amount-cell">&#8377; {{ '%.2f'|format(p.amount) }}</span></td>
+                            <td>
+                                <span class="status-pill status-pill-{{ p.status }}">{{ p.status|capitalize }}</span>
+                            </td>
+                            <td>
+                                {% if p.notes %}
+                                <span class="payment-notes" title="{{ p.notes }}">{{ p.notes[:40] }}{% if p.notes|length > 40 %}&hellip;{% endif %}</span>
+                                {% else %}&mdash;{% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="dash-empty">No payments recorded yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</section>
+{% endblock %}

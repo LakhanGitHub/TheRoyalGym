@@ -144,7 +144,7 @@ _MEMBER_COLUMNS = (
     'm.address, m.join_date, m.plan_id, m.plan_expire_date, m.trainer_id, '
     'm.role, m.created_at, '
     'p.name AS plan_name, p.duration_months AS plan_duration, '
-    'p.duration_days AS plan_duration_days'
+    'p.duration_days AS plan_duration_days, p.fee AS plan_fee'
 )
 
 
@@ -235,6 +235,22 @@ def update_member(member_id, name, mobile, age, gender, join_date, address,
             'trainer_id = ? WHERE id = ?',
             (name, mobile, age, gender, join_date, address,
              plan_id, plan_expire_date, trainer_id, member_id)
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def update_member_self(member_id, mobile, age, gender, address):
+    """Self-service update touching ONLY the four contact fields a member
+    is allowed to change. Never modifies name, email, username, role,
+    plan_id, plan_expire_date, join_date, trainer_id, or password_hash."""
+    conn = get_db()
+    try:
+        conn.execute(
+            'UPDATE members SET mobile = ?, age = ?, gender = ?, address = ? '
+            'WHERE id = ?',
+            (mobile, age, gender, address, member_id)
         )
         conn.commit()
     finally:
