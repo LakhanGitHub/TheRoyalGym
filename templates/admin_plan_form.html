@@ -41,7 +41,8 @@
                     <span>Plan name</span>
                     <select name="name" class="user-pw-input" required>
                         {% for opt in allowed_names %}
-                        <option value="{{ opt }}"{% if prefill.name == opt %} selected{% endif %}>{{ opt }} ({{ {'Monthly': '1 month', 'Quarterly': '3 months', 'Yearly': '12 months'}[opt] }})</option>
+                        {% set md = name_durations[opt] %}
+                        <option value="{{ opt }}"{% if prefill.name == opt %} selected{% endif %}>{{ opt }} ({{ format_plan_duration(md[0], md[1]) }})</option>
                         {% endfor %}
                     </select>
                 </label>

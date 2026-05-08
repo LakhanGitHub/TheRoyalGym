@@ -51,6 +51,8 @@ def init_db():
             CREATE UNIQUE INDEX IF NOT EXISTS idx_membership_plans_name
                 ON membership_plans(name);
         ''')
+        if not _column_exists(conn, 'membership_plans', 'duration_days'):
+            conn.execute('ALTER TABLE membership_plans ADD COLUMN duration_days INTEGER NOT NULL DEFAULT 0')
         if not _column_exists(conn, 'members', 'role'):
             conn.execute("ALTER TABLE members ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
 
@@ -103,7 +105,8 @@ def seed_db():
                 )
 
         plan_seeds = [
-            {'name': 'Monthly', 'duration_months': 1,  'fee': 1200.00},
+            {'name': 'Trial Plan', 'duration_months': 0, 'duration_days': 5, 'fee':  200.00},
+            {'name': 'Monthly',    'duration_months': 1, 'duration_days': 0, 'fee': 1200.00},
         ]
         for plan in plan_seeds:
             existing = conn.execute(
@@ -111,8 +114,8 @@ def seed_db():
             ).fetchone()
             if not existing:
                 conn.execute(
-                    'INSERT INTO membership_plans (name, duration_months, fee) VALUES (?, ?, ?)',
-                    (plan['name'], plan['duration_months'], plan['fee'])
+                    'INSERT INTO membership_plans (name, duration_months, duration_days, fee) VALUES (?, ?, ?, ?)',
+                    (plan['name'], plan['duration_months'], plan['duration_days'], plan['fee'])
                 )
         conn.commit()
     finally:
@@ -123,7 +126,8 @@ _MEMBER_COLUMNS = (
     'm.id, m.name, m.email, m.username, m.mobile, m.age, m.gender, '
     'm.address, m.join_date, m.plan_id, m.plan_expire_date, m.trainer_id, '
     'm.role, m.created_at, '
-    'p.name AS plan_name, p.duration_months AS plan_duration'
+    'p.name AS plan_name, p.duration_months AS plan_duration, '
+    'p.duration_days AS plan_duration_days'
 )
 
 
@@ -204,6 +208,22 @@ def create_member(name, email, password_hash, username, mobile, age,
         conn.close()
 
 
+def update_member(member_id, name, mobile, age, gender, join_date, address,
+                  plan_id, plan_expire_date, trainer_id=None):
+    conn = get_db()
+    try:
+        conn.execute(
+            'UPDATE members SET name = ?, mobile = ?, age = ?, gender = ?, '
+            'join_date = ?, address = ?, plan_id = ?, plan_expire_date = ?, '
+            'trainer_id = ? WHERE id = ?',
+            (name, mobile, age, gender, join_date, address,
+             plan_id, plan_expire_date, trainer_id, member_id)
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def count_members_registered_today():
     conn = get_db()
     try:
@@ -277,11 +297,15 @@ def count_admins():
         conn.close()
 
 
+_PLAN_COLUMNS = 'id, name, duration_months, duration_days, fee, created_at'
+
+
 def get_all_plans():
     conn = get_db()
     try:
         return conn.execute(
-            'SELECT id, name, duration_months, fee, created_at FROM membership_plans ORDER BY duration_months ASC, id ASC'
+            f'SELECT {_PLAN_COLUMNS} FROM membership_plans '
+            'ORDER BY duration_months ASC, duration_days ASC, id ASC'
         ).fetchall()
     finally:
         conn.close()
@@ -291,19 +315,20 @@ def get_plan_by_id(plan_id):
     conn = get_db()
     try:
         return conn.execute(
-            'SELECT id, name, duration_months, fee, created_at FROM membership_plans WHERE id = ?',
+            f'SELECT {_PLAN_COLUMNS} FROM membership_plans WHERE id = ?',
             (plan_id,)
         ).fetchone()
     finally:
         conn.close()
 
 
-def create_plan(name, duration_months, fee):
+def create_plan(name, duration_months, fee, duration_days=0):
     conn = get_db()
     try:
         cur = conn.execute(
-            'INSERT INTO membership_plans (name, duration_months, fee) VALUES (?, ?, ?)',
-            (name, duration_months, fee)
+            'INSERT INTO membership_plans (name, duration_months, duration_days, fee) '
+            'VALUES (?, ?, ?, ?)',
+            (name, duration_months, duration_days, fee)
         )
         conn.commit()
         return cur.lastrowid
@@ -311,12 +336,13 @@ def create_plan(name, duration_months, fee):
         conn.close()
 
 
-def update_plan(plan_id, name, duration_months, fee):
+def update_plan(plan_id, name, duration_months, fee, duration_days=0):
     conn = get_db()
     try:
         conn.execute(
-            'UPDATE membership_plans SET name = ?, duration_months = ?, fee = ? WHERE id = ?',
-            (name, duration_months, fee, plan_id)
+            'UPDATE membership_plans SET name = ?, duration_months = ?, '
+            'duration_days = ?, fee = ? WHERE id = ?',
+            (name, duration_months, duration_days, fee, plan_id)
         )
         conn.commit()
     finally:
@@ -334,16 +360,36 @@ def delete_plan(plan_id):
 
 _EMAIL_RE = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
 _MOBILE_RE = re.compile(r'^[\d\s+()\-]{7,20}$')
-_USERNAME_RE = re.compile(r'^[A-Za-z0-9_-]{3,30}$')
+_INDIAN_MOBILE_RE = re.compile(r'^\+91[6-9]\d{9}$')
+_USERNAME_RAW_RE = re.compile(r'^\S{4,50}$')
+
+USERNAME_DEFAULT_DOMAIN = '@theroyalgym.com'
 
 
 def is_valid_email(value):
-    return bool(_EMAIL_RE.match(value))
+    return bool(_EMAIL_RE.match(value or ''))
 
 
 def is_valid_mobile(value):
-    return bool(_MOBILE_RE.match(value))
+    """Lenient mobile check used by the public enquiry form."""
+    return bool(_MOBILE_RE.match(value or ''))
+
+
+def is_valid_indian_mobile(value):
+    """Strict +91 followed by a 10-digit Indian mobile (starts 6-9)."""
+    return bool(_INDIAN_MOBILE_RE.match(value or ''))
 
 
 def is_valid_username(value):
-    return bool(_USERNAME_RE.match(value))
+    """Admin-supplied username: 4-50 chars, no whitespace."""
+    return bool(_USERNAME_RAW_RE.match(value or ''))
+
+
+def normalize_username_to_email(value):
+    """Lower-case the input and append USERNAME_DEFAULT_DOMAIN if no '@' is present."""
+    s = (value or '').strip().lower()
+    if not s:
+        return ''
+    if '@' not in s:
+        s = f'{s}{USERNAME_DEFAULT_DOMAIN}'
+    return s

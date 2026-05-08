@@ -1,5 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Add Member &mdash; The Royal Gym{% endblock %}
+{% set is_edit = mode == 'edit' %}
+{% set form_action = url_for('admin_members_edit', member_id=member.id) if is_edit else url_for('admin_members_new') %}
+{% set page_title = 'Edit Member' if is_edit else 'Add Member' %}
+{% set page_subtitle = 'Update profile, contact, and membership details.' if is_edit else 'Create a new member profile and assign plan/trainer if needed.' %}
+{% set submit_label = 'Save changes' if is_edit else 'Save Member' %}
+{% block title %}{{ page_title }} &mdash; The Royal Gym{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
@@ -23,14 +28,14 @@
                         </svg>
                     </span>
                     <div>
-                        <h1 class="plans-title">Add Member</h1>
-                        <p class="plans-subtitle">Create a new member profile and assign plan/trainer if needed.</p>
+                        <h1 class="plans-title">{{ page_title }}</h1>
+                        <p class="plans-subtitle">{{ page_subtitle }}</p>
                     </div>
                 </div>
                 <a href="{{ url_for('admin_members') }}" class="user-action-btn">&larr; Back to Members</a>
             </header>
 
-            <form method="post" class="member-form" action="{{ url_for('admin_members_new') }}">
+            <form method="post" class="member-form" id="addMemberForm" action="{{ form_action }}" novalidate>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <!-- Login Credentials -->
@@ -45,8 +50,8 @@
                         <span class="member-form-section-heading">Login Credentials</span>
                     </legend>
 
-                    <div class="member-form-grid member-form-grid-2">
-                        <label class="member-field">
+                    <div class="member-form-grid {% if not is_edit %}member-form-grid-2{% endif %}">
+                        <label class="member-field {% if is_edit %}member-field-wide{% endif %}" for="memberUsername">
                             <span class="member-field-label">Username <span class="member-required">*</span></span>
                             <span class="member-input-wrap">
                                 <span class="member-input-icon" aria-hidden="true">
@@ -55,16 +60,18 @@
                                         <path d="M4 21v-1a6 6 0 0 1 6 -6h4a6 6 0 0 1 6 6v1"/>
                                     </svg>
                                 </span>
-                                <input type="text" name="username" class="member-input"
+                                <input type="text" name="username" id="memberUsername" class="member-input"
                                        value="{{ prefill.username }}"
-                                       required minlength="3" maxlength="30"
-                                       pattern="[A-Za-z0-9_-]{3,30}"
+                                       {% if is_edit %}readonly aria-readonly="true"{% else %}required minlength="4" maxlength="50" data-validate="username"{% endif %}
                                        autocomplete="username"
-                                       placeholder="e.g. rahul123">
+                                       aria-describedby="memberUsernameError memberUsernameHint"
+                                       placeholder="e.g. rahul123 or rahul@example.com">
                             </span>
+                            <span class="member-error" id="memberUsernameError" role="alert"></span>
                         </label>
 
-                        <label class="member-field">
+                        {% if not is_edit %}
+                        <label class="member-field" for="memberPassword">
                             <span class="member-field-label">Password <span class="member-required">*</span></span>
                             <span class="member-input-wrap">
                                 <span class="member-input-icon" aria-hidden="true">
@@ -73,15 +80,27 @@
                                         <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
                                     </svg>
                                 </span>
-                                <input type="password" name="password" class="member-input"
+                                <input type="password" name="password" id="memberPassword" class="member-input"
                                        required minlength="6" maxlength="200"
                                        autocomplete="new-password"
-                                       placeholder="Create a strong password">
+                                       data-validate="password"
+                                       aria-describedby="memberPasswordError"
+                                       placeholder="Create a strong password (min 6 chars)">
                             </span>
+                            <span class="member-error" id="memberPasswordError" role="alert"></span>
                         </label>
+                        {% endif %}
                     </div>
 
-                    <p class="member-form-hint">Username must be unique.</p>
+                    <p class="member-form-hint" id="memberUsernameHint">
+                        {% if is_edit %}
+                        Username is the member&rsquo;s login email and cannot be changed here. Use the
+                        <a href="{{ url_for('admin_settings') }}">Settings</a> page to reset their password.
+                        {% else %}
+                        Username is 4&ndash;50 characters, no spaces. If you don&rsquo;t include a domain we&rsquo;ll append
+                        <code>@theroyalgym.com</code> automatically.
+                        {% endif %}
+                    </p>
                 </fieldset>
 
                 <!-- Basic Information -->
@@ -101,7 +120,7 @@
                     </legend>
 
                     <div class="member-form-grid">
-                        <label class="member-field member-field-wide">
+                        <label class="member-field member-field-wide" for="memberName">
                             <span class="member-field-label">Full Name <span class="member-required">*</span></span>
                             <span class="member-input-wrap">
                                 <span class="member-input-icon" aria-hidden="true">
@@ -111,39 +130,51 @@
                                         <path d="M5 19l5 -5l4 4l5 -5l4 4"/>
                                     </svg>
                                 </span>
-                                <input type="text" name="name" class="member-input"
+                                <input type="text" name="name" id="memberName" class="member-input"
                                        value="{{ prefill.name }}"
                                        required minlength="2" maxlength="100"
+                                       data-validate="name"
+                                       aria-describedby="memberNameError"
                                        placeholder="e.g. Rahul Sharma">
                             </span>
+                            <span class="member-error" id="memberNameError" role="alert"></span>
                         </label>
 
-                        <label class="member-field">
-                            <span class="member-field-label">Mobile</span>
+                        <label class="member-field" for="memberMobile">
+                            <span class="member-field-label">Mobile <span class="member-required">*</span></span>
                             <span class="member-input-wrap">
                                 <span class="member-input-icon" aria-hidden="true">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2"/>
                                     </svg>
                                 </span>
-                                <input type="tel" name="mobile" class="member-input"
-                                       value="{{ prefill.mobile }}"
-                                       maxlength="20"
-                                       placeholder="e.g. 1234******">
+                                <input type="tel" name="mobile" id="memberMobile" class="member-input"
+                                       value="{{ prefill.mobile or '+91' }}"
+                                       required maxlength="13"
+                                       inputmode="numeric"
+                                       pattern="\+91[6-9][0-9]{9}"
+                                       data-validate="mobile"
+                                       aria-describedby="memberMobileError"
+                                       placeholder="+91XXXXXXXXXX">
                             </span>
+                            <span class="member-error" id="memberMobileError" role="alert"></span>
                         </label>
 
-                        <label class="member-field">
+                        <label class="member-field" for="memberAge">
                             <span class="member-field-label">Age</span>
                             <span class="member-input-wrap">
                                 <span class="member-input-icon" aria-hidden="true">#</span>
-                                <input type="number" name="age" class="member-input"
-                                       value="{{ prefill.age }}"
-                                       min="5" max="120">
+                                <input type="number" name="age" id="memberAge" class="member-input"
+                                       {% if prefill.age %}value="{{ prefill.age }}"{% endif %}
+                                       min="5" max="120"
+                                       data-validate="age"
+                                       aria-describedby="memberAgeError"
+                                       placeholder="e.g. 28">
                             </span>
+                            <span class="member-error" id="memberAgeError" role="alert"></span>
                         </label>
 
-                        <label class="member-field">
+                        <label class="member-field" for="memberGender">
                             <span class="member-field-label">Gender</span>
                             <span class="member-input-wrap">
                                 <span class="member-input-icon" aria-hidden="true">
@@ -153,7 +184,7 @@
                                         <path d="M9 19h6"/>
                                     </svg>
                                 </span>
-                                <select name="gender" class="member-input member-input-select">
+                                <select name="gender" id="memberGender" class="member-input member-input-select">
                                     <option value="">Select</option>
                                     {% for g in gender_options %}
                                     <option value="{{ g }}"{% if prefill.gender == g %} selected{% endif %}>{{ g }}</option>
@@ -162,8 +193,8 @@
                             </span>
                         </label>
 
-                        <label class="member-field">
-                            <span class="member-field-label">Join Date</span>
+                        <label class="member-field" for="memberJoinDate">
+                            <span class="member-field-label">Join Date <span class="member-required">*</span></span>
                             <span class="member-input-wrap">
                                 <span class="member-input-icon" aria-hidden="true">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -171,12 +202,18 @@
                                         <path d="M16 3v4"/><path d="M8 3v4"/><path d="M4 11h16"/>
                                     </svg>
                                 </span>
-                                <input type="date" name="join_date" class="member-input"
-                                       value="{{ prefill.join_date or today_iso }}">
+                                <input type="date" name="join_date" id="memberJoinDate" class="member-input"
+                                       value="{{ prefill.join_date }}"
+                                       required
+                                       max="2099-12-31"
+                                       data-validate="join_date"
+                                       aria-describedby="memberJoinDateError"
+                                       placeholder="YYYY-MM-DD">
                             </span>
+                            <span class="member-error" id="memberJoinDateError" role="alert"></span>
                         </label>
 
-                        <label class="member-field member-field-wide">
+                        <label class="member-field member-field-wide" for="memberAddress">
                             <span class="member-field-label">Address</span>
                             <span class="member-input-wrap member-input-wrap-textarea">
                                 <span class="member-input-icon" aria-hidden="true">
@@ -185,7 +222,7 @@
                                         <circle cx="12" cy="10" r="3"/>
                                     </svg>
                                 </span>
-                                <textarea name="address" class="member-input member-input-textarea"
+                                <textarea name="address" id="memberAddress" class="member-input member-input-textarea"
                                           rows="2" maxlength="500"
                                           placeholder="House no, area, city...">{{ prefill.address }}</textarea>
                             </span>
@@ -209,24 +246,30 @@
                     </legend>
 
                     <div class="member-form-grid member-form-grid-2">
-                        <label class="member-field">
-                            <span class="member-field-label">Membership Plan</span>
+                        <label class="member-field" for="memberPlan">
+                            <span class="member-field-label">Membership Plan <span class="member-required">*</span></span>
                             <span class="member-input-wrap">
                                 <span class="member-input-icon" aria-hidden="true">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M3 7l4 4l5 -7l5 7l4 -4v11a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1z"/>
                                     </svg>
                                 </span>
-                                <select name="plan_id" class="member-input member-input-select">
-                                    <option value=""{% if not prefill.plan_id %} selected{% endif %}>No Plan</option>
+                                <select name="plan_id" id="memberPlan" class="member-input member-input-select"
+                                        required
+                                        data-validate="plan_id"
+                                        aria-describedby="memberPlanError">
+                                    <option value="" disabled{% if not prefill.plan_id %} selected{% endif %}>Select a plan&hellip;</option>
                                     {% for p in plans %}
-                                    <option value="{{ p.id }}"{% if prefill.plan_id == p.id|string %} selected{% endif %}>{{ p.name }} ({{ p.duration_months }} mo)</option>
+                                    <option value="{{ p.id }}"{% if prefill.plan_id == p.id|string %} selected{% endif %}>{{ p.name }} ({{ format_plan_duration(p.duration_months, p.duration_days) }})</option>
                                     {% endfor %}
                                 </select>
                             </span>
+                            <span class="member-error" id="memberPlanError" role="alert">
+                                {% if not plans %}No active membership plans configured. Please add one first.{% endif %}
+                            </span>
                         </label>
 
-                        <label class="member-field">
+                        <label class="member-field" for="memberTrainer">
                             <span class="member-field-label">Trainer</span>
                             <span class="member-input-wrap">
                                 <span class="member-input-icon" aria-hidden="true">
@@ -235,7 +278,7 @@
                                         <path d="M4 21v-1a6 6 0 0 1 6 -6h4a6 6 0 0 1 6 6v1"/>
                                     </svg>
                                 </span>
-                                <select name="trainer_id" class="member-input member-input-select" disabled aria-disabled="true">
+                                <select name="trainer_id" id="memberTrainer" class="member-input member-input-select" disabled aria-disabled="true">
                                     <option value="">No Trainer</option>
                                 </select>
                             </span>
@@ -244,11 +287,11 @@
                 </fieldset>
 
                 <div class="member-form-actions">
-                    <button type="submit" class="plans-add-btn">
+                    <button type="submit" id="addMemberSubmit" class="plans-add-btn">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M5 12l5 5l9 -9"/>
                         </svg>
-                        Save Member
+                        {{ submit_label }}
                     </button>
                     <a href="{{ url_for('admin_members') }}" class="user-action-btn">&times; Cancel</a>
                 </div>

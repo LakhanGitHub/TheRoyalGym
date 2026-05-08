@@ -18,23 +18,48 @@ from database.db import (
     count_members_registered_today,
     update_member_role, update_member_password, delete_member, count_admins,
     get_all_plans, get_plan_by_id, create_plan, update_plan, delete_plan,
-    create_member,
-    is_valid_email, is_valid_mobile, is_valid_username,
+    create_member, update_member,
+    is_valid_email, is_valid_mobile, is_valid_indian_mobile,
+    is_valid_username, normalize_username_to_email,
 )
 
-PLAN_DURATIONS = {'Monthly': 1, 'Quarterly': 3, 'Yearly': 12}
+PLAN_DURATIONS = {
+    'Trial Plan': (0, 5),
+    'Monthly':    (1, 0),
+    'Quarterly':  (3, 0),
+    'Yearly':     (12, 0),
+}
 GENDER_OPTIONS = ('Male', 'Female', 'Other')
 
 
-def _add_months(start_iso, months):
-    """Add `months` to an ISO YYYY-MM-DD string; clamps to month-end (Jan 31 + 1 month -> Feb 28/29)."""
+def _format_plan_duration(months, days):
+    """Human-readable duration label, e.g. '5 days', '1 month', '3 months'."""
+    months = int(months or 0)
+    days = int(days or 0)
+    if days and not months:
+        return f"{days} day{'s' if days != 1 else ''}"
+    if months and not days:
+        return f"{months} month{'s' if months != 1 else ''}"
+    if months and days:
+        return f"{months} month{'s' if months != 1 else ''} {days} day{'s' if days != 1 else ''}"
+    return '0 days'
+
+
+def _add_duration(start_iso, months, days):
+    """Add `months` (with month-end clamp) then `days` to an ISO YYYY-MM-DD string."""
     start = date.fromisoformat(start_iso)
-    total = (start.month - 1) + int(months)
-    new_year = start.year + total // 12
-    new_month = total % 12 + 1
-    last_day = calendar.monthrange(new_year, new_month)[1]
-    new_day = min(start.day, last_day)
-    return date(new_year, new_month, new_day).isoformat()
+    months = int(months or 0)
+    days = int(days or 0)
+    if months:
+        total = (start.month - 1) + months
+        new_year = start.year + total // 12
+        new_month = total % 12 + 1
+        last_day = calendar.monthrange(new_year, new_month)[1]
+        new_day = min(start.day, last_day)
+        start = date(new_year, new_month, new_day)
+    if days:
+        start = start + timedelta(days=days)
+    return start.isoformat()
 
 
 ADMIN_NAV_ITEMS = [
@@ -110,6 +135,7 @@ def _valid_csrf(submitted):
 
 
 app.jinja_env.globals['csrf_token'] = generate_csrf_token
+app.jinja_env.globals['format_plan_duration'] = _format_plan_duration
 
 
 # ---------- Auth decorators ----------
@@ -349,21 +375,23 @@ def admin_plans():
 
 
 def _parse_plan_form():
-    """Validate name + fee from request.form. Returns (name, duration_months, fee, error)."""
+    """Validate name + fee from request.form.
+    Returns (name, duration_months, duration_days, fee, error)."""
     name = request.form.get('name', '').strip()
     fee_raw = request.form.get('fee', '').strip()
 
     if name not in PLAN_DURATIONS:
-        return None, None, None, 'Plan name must be Monthly, Quarterly, or Yearly.'
+        return None, None, None, None, 'Plan name must be one of: ' + ', '.join(PLAN_DURATIONS.keys()) + '.'
 
     try:
         fee = float(fee_raw)
     except ValueError:
-        return None, None, None, 'Fee must be a valid number.'
+        return None, None, None, None, 'Fee must be a valid number.'
     if fee < 0 or fee > 1_000_000:
-        return None, None, None, 'Fee must be between 0 and 1,000,000.'
+        return None, None, None, None, 'Fee must be between 0 and 1,000,000.'
 
-    return name, PLAN_DURATIONS[name], fee, None
+    months, days = PLAN_DURATIONS[name]
+    return name, months, days, fee, None
 
 
 @app.route('/admin/plans/new', methods=['GET', 'POST'])
@@ -375,17 +403,18 @@ def admin_plans_new():
         if not _valid_csrf(request.form.get('csrf_token')):
             abort(403)
 
-        name, duration_months, fee, err = _parse_plan_form()
+        name, duration_months, duration_days, fee, err = _parse_plan_form()
         if err:
             flash(err, 'error')
             return render_template(
                 'admin_plan_form.html', nav_items=ADMIN_NAV_ITEMS,
                 active_tab='Plans', mode='new', plan=None, prefill=prefill,
                 allowed_names=list(PLAN_DURATIONS.keys()),
+                name_durations=PLAN_DURATIONS,
             )
 
         try:
-            create_plan(name, duration_months, fee)
+            create_plan(name, duration_months, fee, duration_days=duration_days)
             flash(f'Plan "{name}" created.', 'success')
             return redirect(url_for('admin_plans'))
         except sqlite3.IntegrityError:
@@ -398,12 +427,14 @@ def admin_plans_new():
             'admin_plan_form.html', nav_items=ADMIN_NAV_ITEMS,
             active_tab='Plans', mode='new', plan=None, prefill=prefill,
             allowed_names=list(PLAN_DURATIONS.keys()),
+            name_durations=PLAN_DURATIONS,
         )
 
     return render_template(
         'admin_plan_form.html', nav_items=ADMIN_NAV_ITEMS,
         active_tab='Plans', mode='new', plan=None, prefill=prefill,
         allowed_names=list(PLAN_DURATIONS.keys()),
+        name_durations=PLAN_DURATIONS,
     )
 
 
@@ -424,17 +455,18 @@ def admin_plans_edit(plan_id):
         if not _valid_csrf(request.form.get('csrf_token')):
             abort(403)
 
-        name, duration_months, fee, err = _parse_plan_form()
+        name, duration_months, duration_days, fee, err = _parse_plan_form()
         if err:
             flash(err, 'error')
             return render_template(
                 'admin_plan_form.html', nav_items=ADMIN_NAV_ITEMS,
                 active_tab='Plans', mode='edit', plan=plan, prefill=prefill,
                 allowed_names=list(PLAN_DURATIONS.keys()),
+                name_durations=PLAN_DURATIONS,
             )
 
         try:
-            update_plan(plan_id, name, duration_months, fee)
+            update_plan(plan_id, name, duration_months, fee, duration_days=duration_days)
             flash(f'Plan "{name}" updated.', 'success')
             return redirect(url_for('admin_plans'))
         except sqlite3.IntegrityError:
@@ -447,12 +479,14 @@ def admin_plans_edit(plan_id):
             'admin_plan_form.html', nav_items=ADMIN_NAV_ITEMS,
             active_tab='Plans', mode='edit', plan=plan, prefill=prefill,
             allowed_names=list(PLAN_DURATIONS.keys()),
+            name_durations=PLAN_DURATIONS,
         )
 
     return render_template(
         'admin_plan_form.html', nav_items=ADMIN_NAV_ITEMS,
         active_tab='Plans', mode='edit', plan=plan, prefill=prefill,
         allowed_names=list(PLAN_DURATIONS.keys()),
+        name_durations=PLAN_DURATIONS,
     )
 
 
@@ -479,24 +513,38 @@ def admin_plans_delete(plan_id):
 @app.route('/admin/members')
 @admin_required
 def admin_members():
-    members = get_all_members(role='user')
+    today = date.today()
     return render_template(
         'admin_members.html',
         nav_items=ADMIN_NAV_ITEMS,
-        members=members,
+        members=get_all_members(role='user'),
         active_tab='Members',
+        today_iso=today.isoformat(),
+        current_month=today.strftime('%Y-%m'),
     )
 
 
 def _empty_member_prefill():
     return {
-        'username': '', 'name': '', 'mobile': '', 'age': '',
-        'gender': '', 'join_date': date.today().isoformat(),
-        'address': '', 'plan_id': '',
+        'username': '', 'name': '', 'mobile': '+91', 'age': '',
+        'gender': '', 'join_date': '', 'address': '', 'plan_id': '',
     }
 
 
-def _render_member_form(prefill, mode='new'):
+def _prefill_from_member(member):
+    return {
+        'username':  member['email'] or '',
+        'name':      member['name'] or '',
+        'mobile':    member['mobile'] or '+91',
+        'age':       str(member['age']) if member['age'] is not None else '',
+        'gender':    member['gender'] or '',
+        'join_date': member['join_date'] or '',
+        'address':   member['address'] or '',
+        'plan_id':   str(member['plan_id']) if member['plan_id'] else '',
+    }
+
+
+def _render_member_form(prefill, mode='new', member=None):
     return render_template(
         'admin_member_new.html',
         nav_items=ADMIN_NAV_ITEMS,
@@ -506,7 +554,83 @@ def _render_member_form(prefill, mode='new'):
         prefill=prefill,
         active_tab='Members',
         mode=mode,
+        member=member,
     )
+
+
+def _read_member_form(form):
+    """Snapshot the typed form values into the prefill dict the form template expects."""
+    return {
+        'username':  form.get('username', '').strip(),
+        'name':      form.get('name', '').strip(),
+        'mobile':    form.get('mobile', '').strip(),
+        'age':       form.get('age', '').strip(),
+        'gender':    form.get('gender', '').strip(),
+        'join_date': form.get('join_date', '').strip(),
+        'address':   form.get('address', '').strip(),
+        'plan_id':   form.get('plan_id', '').strip(),
+    }
+
+
+def _validate_member_form(prefill):
+    """Validate shared (non-credential) fields and resolve the chosen plan.
+
+    Returns (parsed_dict, error_message). On success error_message is None.
+    `parsed_dict` keys: name, mobile, age, gender, join_date, address, plan_id,
+    plan_expire_date.
+    """
+    if not prefill['name'] or len(prefill['name']) < 2 or len(prefill['name']) > 100:
+        return None, 'Full name is required (2-100 characters).'
+
+    mobile = prefill['mobile']
+    if not mobile or not is_valid_indian_mobile(mobile):
+        return None, 'Mobile number must be in the format +91XXXXXXXXXX (10 digits, starting 6-9).'
+
+    age = None
+    if prefill['age']:
+        try:
+            age = int(prefill['age'])
+            if age < 5 or age > 120:
+                raise ValueError()
+        except ValueError:
+            return None, 'Age must be a whole number between 5 and 120.'
+
+    gender = prefill['gender'] or None
+    if gender and gender not in GENDER_OPTIONS:
+        return None, 'Gender selection is invalid.'
+
+    if not prefill['join_date']:
+        return None, 'Join date is required.'
+    try:
+        date.fromisoformat(prefill['join_date'])
+    except ValueError:
+        return None, 'Join date must be a valid date (YYYY-MM-DD).'
+    join_date = prefill['join_date']
+
+    address = prefill['address'] or None
+    if address and len(address) > 500:
+        return None, 'Address is too long (max 500 characters).'
+
+    if not prefill['plan_id']:
+        return None, 'Membership plan is required.'
+    try:
+        plan_id = int(prefill['plan_id'])
+    except ValueError:
+        return None, 'Selected plan is invalid.'
+    plan = get_plan_by_id(plan_id)
+    if not plan:
+        return None, 'Selected plan no longer exists. Please pick a current plan.'
+
+    return {
+        'name':             prefill['name'],
+        'mobile':           mobile,
+        'age':              age,
+        'gender':           gender,
+        'join_date':        join_date,
+        'address':          address,
+        'plan_id':          plan_id,
+        'plan_expire_date': _add_duration(join_date, plan['duration_months'], plan['duration_days']),
+    }, None
 
 
 @app.route('/admin/members/new', methods=['GET', 'POST'])
@@ -518,103 +642,117 @@ def admin_members_new():
     if not _valid_csrf(request.form.get('csrf_token')):
         abort(403)
 
-    f = request.form
-    prefill = {
-        'username':  f.get('username', '').strip(),
-        'name':      f.get('name', '').strip(),
-        'mobile':    f.get('mobile', '').strip(),
-        'age':       f.get('age', '').strip(),
-        'gender':    f.get('gender', '').strip(),
-        'join_date': f.get('join_date', '').strip(),
-        'address':   f.get('address', '').strip(),
-        'plan_id':   f.get('plan_id', '').strip(),
-    }
-    password = f.get('password', '')
+    prefill = _read_member_form(request.form)
+    password = request.form.get('password', '')
 
-    # Required fields
     if not prefill['username'] or not is_valid_username(prefill['username']):
-        flash('Username is required (3-30 chars, letters/digits/underscore/hyphen).', 'error')
+        flash('Username is required (4-50 characters, no spaces).', 'error')
         return _render_member_form(prefill)
+    email = normalize_username_to_email(prefill['username'])
+    if not is_valid_email(email) or len(email) > 150:
+        flash('Username must form a valid email after appending the default domain.', 'error')
+        return _render_member_form(prefill)
+
     if not password or len(password) < 6 or len(password) > 200:
         flash('Password is required (6-200 characters).', 'error')
         return _render_member_form(prefill)
-    if not prefill['name'] or len(prefill['name']) < 2 or len(prefill['name']) > 100:
-        flash('Full name is required (2-100 characters).', 'error')
+
+    parsed, err = _validate_member_form(prefill)
+    if err:
+        flash(err, 'error')
         return _render_member_form(prefill)
 
-    # Optional fields
-    mobile = prefill['mobile'] or None
-    if mobile and not is_valid_mobile(mobile):
-        flash('Mobile number is invalid.', 'error')
-        return _render_member_form(prefill)
+    raw_username = prefill['username'].lower()
+    username_for_db = raw_username if '@' not in raw_username else email
 
-    age = None
-    if prefill['age']:
-        try:
-            age = int(prefill['age'])
-            if age < 5 or age > 120:
-                raise ValueError()
-        except ValueError:
-            flash('Age must be a whole number between 5 and 120.', 'error')
-            return _render_member_form(prefill)
-
-    gender = prefill['gender'] or None
-    if gender and gender not in GENDER_OPTIONS:
-        flash('Gender selection is invalid.', 'error')
-        return _render_member_form(prefill)
-
-    join_date = prefill['join_date'] or None
-    if join_date:
-        try:
-            date.fromisoformat(join_date)
-        except ValueError:
-            flash('Join date is invalid.', 'error')
-            return _render_member_form(prefill)
-
-    address = prefill['address'] or None
-    if address and len(address) > 500:
-        flash('Address is too long (max 500 characters).', 'error')
-        return _render_member_form(prefill)
-
-    plan_id = None
-    plan_expire_date = None
-    if prefill['plan_id']:
-        try:
-            plan_id = int(prefill['plan_id'])
-        except ValueError:
-            flash('Selected plan is invalid.', 'error')
-            return _render_member_form(prefill)
-        plan = get_plan_by_id(plan_id)
-        if not plan:
-            flash('Selected plan no longer exists.', 'error')
-            return _render_member_form(prefill)
-        if join_date:
-            plan_expire_date = _add_months(join_date, plan['duration_months'])
-
-    synth_email = f"{prefill['username'].lower()}@member.local"
     try:
         create_member(
-            name=prefill['name'],
-            email=synth_email,
+            name=parsed['name'], email=email,
             password_hash=generate_password_hash(password),
-            username=prefill['username'],
-            mobile=mobile,
-            age=age,
-            gender=gender,
-            join_date=join_date,
-            address=address,
-            plan_id=plan_id,
-            plan_expire_date=plan_expire_date,
+            username=username_for_db,
+            mobile=parsed['mobile'], age=parsed['age'],
+            gender=parsed['gender'], join_date=parsed['join_date'],
+            address=parsed['address'], plan_id=parsed['plan_id'],
+            plan_expire_date=parsed['plan_expire_date'],
         )
-        flash(f"Member \"{prefill['name']}\" created.", 'success')
+        flash(f"Member \"{parsed['name']}\" created. Login: {email}", 'success')
         return redirect(url_for('admin_members'))
     except sqlite3.IntegrityError:
-        flash('That username (or its synthesised email) is already taken. Try a different username.', 'error')
+        flash('That username is already taken. Pick a different one.', 'error')
         return _render_member_form(prefill)
     except sqlite3.Error:
         app.logger.exception('Member create failed')
         flash('Action failed. Please try again.', 'error')
         return _render_member_form(prefill)
+
+
+def _load_editable_member(member_id):
+    """Return a non-admin member by id, or None — flashing the right message and
+    pushing the redirect target onto the caller is left to the route."""
+    member = get_member_by_id(member_id)
+    if not member or member['role'] != 'user':
+        return None
+    return member
+
+
+@app.route('/admin/members/<int:member_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def admin_members_edit(member_id):
+    member = _load_editable_member(member_id)
+    if not member:
+        flash('Member not found.', 'error')
+        return redirect(url_for('admin_members'))
+
+    if request.method == 'GET':
+        return _render_member_form(_prefill_from_member(member), mode='edit', member=member)
+
+    if not _valid_csrf(request.form.get('csrf_token')):
+        abort(403)
+
+    prefill = _read_member_form(request.form)
+    # Username and email are immutable from this form — keep the originals.
+    prefill['username'] = member['email']
+
+    parsed, err = _validate_member_form(prefill)
+    if err:
+        flash(err, 'error')
+        return _render_member_form(prefill, mode='edit', member=member)
+
+    try:
+        update_member(
+            member_id=member['id'],
+            name=parsed['name'], mobile=parsed['mobile'], age=parsed['age'],
+            gender=parsed['gender'], join_date=parsed['join_date'],
+            address=parsed['address'], plan_id=parsed['plan_id'],
+            plan_expire_date=parsed['plan_expire_date'],
+            trainer_id=member['trainer_id'],
+        )
+        flash(f"Member \"{parsed['name']}\" updated.", 'success')
+        return redirect(url_for('admin_members'))
+    except sqlite3.Error:
+        app.logger.exception('Member update failed')
+        flash('Action failed. Please try again.', 'error')
+        return _render_member_form(prefill, mode='edit', member=member)
+
+
+@app.route('/admin/members/<int:member_id>/delete', methods=['POST'])
+@admin_required
+def admin_members_delete(member_id):
+    if not _valid_csrf(request.form.get('csrf_token')):
+        abort(403)
+
+    member = _load_editable_member(member_id)
+    if not member:
+        flash('Member not found.', 'error')
+        return redirect(url_for('admin_members'))
+
+    try:
+        delete_member(member['id'])
+        flash(f"Deleted {member['name']}.", 'success')
+    except sqlite3.Error:
+        app.logger.exception('Member delete failed')
+        flash('Action failed. Please try again.', 'error')
+    return redirect(url_for('admin_members'))
 
 
 @app.route('/member/dashboard')

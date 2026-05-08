@@ -239,6 +239,17 @@ No new dependencies. Flask, Werkzeug, and stdlib `sqlite3` only.
   surface stack traces to the user.
 
 ## Definition of done
+  - [ ] Admin settings page where a super-admin can:
+  - View a list of all users (admins and members) with their current role
+  - Promote an existing member to admin role
+  - Demote an admin back to member role
+  - Change any user's password (admin-initiated reset, no email flow)
+  - Delete a user entirely (removes all their records)
+
+Rules:
+- Only admins can access this page (non-admins get 403)
+- An admin cannot delete or demote themselves
+- Confirmation required before delete or role change
 - [ ] `python theroyalgym/app.py` boots cleanly on port 5001 with no console
       errors and no Jinja2 warnings.
 - [ ] `http://127.0.0.1:5001/admin/dashboard` (logged in as
