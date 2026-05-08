@@ -44,6 +44,43 @@
                 </a>
             </header>
 
+            <div class="member-toolbar" role="search" aria-label="Filter members">
+                <label class="member-search" for="memberSearch">
+                    <span class="member-search-icon" aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="7"/>
+                            <path d="M21 21l-5 -5"/>
+                        </svg>
+                    </span>
+                    <input type="search" id="memberSearch" name="q"
+                           class="member-search-input"
+                           placeholder="Search by name or mobile&hellip;"
+                           autocomplete="off"
+                           aria-label="Search members by name or mobile">
+                </label>
+
+                <div class="member-daterange">
+                    <label class="member-daterange-field" for="memberFrom">
+                        <span class="member-daterange-label">From</span>
+                        <input type="date" id="memberFrom" class="member-daterange-input" aria-label="Start join date">
+                    </label>
+                    <span class="member-daterange-sep" aria-hidden="true">&rarr;</span>
+                    <label class="member-daterange-field" for="memberTo">
+                        <span class="member-daterange-label">To</span>
+                        <input type="date" id="memberTo" class="member-daterange-input" aria-label="End join date">
+                    </label>
+                    <button type="button" id="memberFilterReset" class="member-daterange-reset" title="Clear filters">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M18 6l-12 12"/>
+                            <path d="M6 6l12 12"/>
+                        </svg>
+                        <span>Reset</span>
+                    </button>
+                </div>
+
+                <p class="member-toolbar-error" id="memberDateError" role="alert"></p>
+            </div>
+
             <div class="dash-table-wrap">
                 <table class="dash-table plans-table members-table">
                     <thead>
@@ -81,7 +118,10 @@ Drop by the front desk, reply to this email, or call us to renew. We don't want 
 Stay strong,
 The Royal Gym Team
 {% endset %}
-                        <tr class="member-row">
+                        <tr class="member-row"
+                            data-search-name="{{ m.name|lower }}"
+                            data-search-mobile="{{ (m.mobile or '')|replace('+','')|replace(' ','')|replace('-','') }}"
+                            data-join-date="{{ m.join_date or '' }}">
                             <td>{{ loop.index }}</td>
                             <td>
                                 <div class="plan-name">
@@ -180,6 +220,15 @@ The Royal Gym Team
                             <td colspan="8" class="dash-empty">No members yet. Click <strong>+ Add Member</strong> to register one.</td>
                         </tr>
                         {% endfor %}
+                        <tr id="memberSearchEmpty" class="member-search-empty" hidden>
+                            <td colspan="8" class="dash-empty">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <circle cx="11" cy="11" r="7"/>
+                                    <path d="M21 21l-5 -5"/>
+                                </svg>
+                                No members found matching the current filters.
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>

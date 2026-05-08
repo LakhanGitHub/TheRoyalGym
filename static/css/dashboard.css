@@ -173,7 +173,7 @@
    (visual redesign per spec 02)
    ========================================================= */
 
-/* Admin tab bar */
+/* Admin tab bar — sticky beneath the page navbar so tabs stay visible while scrolling */
 .admin-tabs {
     display: flex;
     gap: 4px;
@@ -185,6 +185,10 @@
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     list-style: none;
+    position: sticky;
+    top: var(--nav-h);
+    z-index: 50;
+    box-shadow: 0 6px 18px rgba(0,0,0,.45);
 }
 .admin-tabs::-webkit-scrollbar { height: 6px; }
 .admin-tabs::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
@@ -1056,6 +1060,142 @@
    Members list — formatted columns, icon actions, expiry pills
    ========================================================= */
 
+/* Member list toolbar — search + date range filter row */
+.member-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 22px 0;
+}
+
+.member-search {
+    position: relative;
+    flex: 1 1 260px;
+    min-width: 220px;
+    max-width: 360px;
+}
+.member-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    line-height: 0;
+    pointer-events: none;
+}
+.member-search-input {
+    width: 100%;
+    padding: 9px 12px 9px 34px;
+    border-radius: var(--radius-sm);
+    background: var(--body-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-size: 0.85rem;
+    transition: var(--t);
+}
+.member-search-input::placeholder { color: var(--text-muted); }
+.member-search-input:focus {
+    outline: none;
+    border-color: var(--accent-gold);
+}
+.member-search-input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    height: 14px;
+    width: 14px;
+    background: var(--text-muted);
+    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M6 6l12 12M6 18L18 6' stroke='black' stroke-width='2' stroke-linecap='round'/></svg>") center / contain no-repeat;
+            mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M6 6l12 12M6 18L18 6' stroke='black' stroke-width='2' stroke-linecap='round'/></svg>") center / contain no-repeat;
+    cursor: pointer;
+}
+
+.member-daterange {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.member-daterange-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--body-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    transition: var(--t);
+}
+.member-daterange-field:focus-within {
+    border-color: var(--accent-gold);
+}
+.member-daterange-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+.member-daterange-input {
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-size: 0.82rem;
+    padding: 0;
+    min-width: 122px;
+}
+.member-daterange-input:focus { outline: none; }
+.member-daterange-input.is-invalid {
+    color: var(--expiry-bg);
+}
+.member-daterange-sep {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+.member-daterange-reset {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 500;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: var(--t);
+}
+.member-daterange-reset:hover {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+}
+
+.member-toolbar-error {
+    flex-basis: 100%;
+    margin: 2px 0 0;
+    font-size: 0.75rem;
+    color: var(--expiry-bg);
+    min-height: 1em;
+}
+.member-toolbar-error:empty { display: none; }
+
+.member-search-empty .dash-empty {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+    .member-toolbar { padding: 14px 16px 0; gap: 10px; }
+    .member-search { max-width: 100%; flex-basis: 100%; }
+    .member-daterange { width: 100%; justify-content: space-between; }
+    .member-daterange-field { flex: 1 1 0; min-width: 0; }
+    .member-daterange-input { min-width: 0; width: 100%; }
+}
+
 /* Compact members table: smaller font, single-line cells, tighter padding */
 .members-table { font-size: 0.82rem; }
 .members-table th {
@@ -1202,11 +1342,10 @@
     color: var(--text-secondary);
 }
 .expiry-warning {
-    background: var(--danger);
+    background: var(--expiry-bg);
     color: var(--white);
     font-weight: 700;
-    border-color: var(--danger);
-    box-shadow: 0 0 0 4px rgba(192,57,43,.18);
+    border-color: var(--expiry-bd);
 }
 .expiry-expired {
     background: rgba(192,57,43,.18);

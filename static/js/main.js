@@ -142,6 +142,83 @@ document.querySelectorAll('form[data-confirm]').forEach((form) => {
     });
 });
 
+/* ===== Members list: search + date-range filter ===== */
+(function () {
+    const tbody       = document.querySelector('.members-table tbody');
+    const searchInput = document.getElementById('memberSearch');
+    const fromInput   = document.getElementById('memberFrom');
+    const toInput     = document.getElementById('memberTo');
+    const resetBtn    = document.getElementById('memberFilterReset');
+    const emptyRow    = document.getElementById('memberSearchEmpty');
+    const dateError   = document.getElementById('memberDateError');
+    if (!tbody || (!searchInput && !fromInput && !toInput)) return;
+
+    const rows = Array.from(tbody.querySelectorAll('tr.member-row'));
+    if (rows.length === 0) return;
+
+    const digitsOnly = (s) => (s || '').replace(/\D/g, '');
+
+    function applyFilter() {
+        const q       = (searchInput?.value || '').trim().toLowerCase();
+        const qDigits = digitsOnly(q);
+        const fromVal = fromInput?.value || '';
+        const toVal   = toInput?.value   || '';
+
+        const dateInvalid = !!(fromVal && toVal && fromVal > toVal);
+        if (dateError) {
+            dateError.textContent = dateInvalid
+                ? 'End date must be on or after start date.'
+                : '';
+        }
+        [fromInput, toInput].forEach((el) => {
+            if (el) el.classList.toggle('is-invalid', dateInvalid);
+        });
+
+        let visible = 0;
+        rows.forEach((row) => {
+            if (dateInvalid) { row.hidden = true; return; }
+
+            const name   = row.dataset.searchName   || '';
+            const mobile = row.dataset.searchMobile || '';
+            const join   = row.dataset.joinDate     || '';
+
+            let matchesQuery = !q;
+            if (q) {
+                if (name.includes(q)) matchesQuery = true;
+                if (qDigits && qDigits.length >= 2 && mobile.includes(qDigits)) matchesQuery = true;
+            }
+
+            let inRange = true;
+            if (fromVal && (!join || join < fromVal)) inRange = false;
+            if (toVal   && (!join || join > toVal))   inRange = false;
+
+            const show = matchesQuery && inRange;
+            row.hidden = !show;
+            if (show) visible++;
+        });
+
+        if (emptyRow) emptyRow.hidden = visible > 0 || dateInvalid;
+    }
+
+    [searchInput, fromInput, toInput].forEach((el) => {
+        if (!el) return;
+        el.addEventListener('input',  applyFilter);
+        el.addEventListener('change', applyFilter);
+    });
+
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            if (searchInput) searchInput.value = '';
+            if (fromInput)   fromInput.value   = '';
+            if (toInput)     toInput.value     = '';
+            if (dateError)   dateError.textContent = '';
+            [fromInput, toInput].forEach((el) => el && el.classList.remove('is-invalid'));
+            applyFilter();
+            if (searchInput) searchInput.focus();
+        });
+    }
+})();
+
 /* ===== Members list: delete confirmation modal ===== */
 (function () {
     const modal = document.getElementById('deleteMemberModal');

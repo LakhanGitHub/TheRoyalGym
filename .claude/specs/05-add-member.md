@@ -259,6 +259,29 @@ All helpers use parameterised queries and the existing `get_db()` /
     nowrap` keeps each member's row on a single line (the table wraps
     into a horizontal scroll inside `.dash-table-wrap` if the viewport
     is narrower than the content).
+  - **Sticky admin tabs**: `.admin-tabs` is `position: sticky; top:
+    var(--nav-h); z-index: 50;` with a `0 6px 18px rgba(0,0,0,.45)`
+    drop-shadow so the tab strip stays visible (right under the
+    page navbar) while the content scrolls. Works at every viewport.
+  - **Members toolbar** (`.member-toolbar`): a flex row directly
+    under `.plans-header` and above `.dash-table-wrap`. Holds:
+    - `.member-search` — `<label>` wrapping a search SVG icon
+      (`.member-search-icon`) and an `<input type="search"
+      id="memberSearch">` (placeholder "Search by name or
+      mobile…").
+    - `.member-daterange` — two `<input type="date">` (id
+      `memberFrom` / `memberTo`) inside `.member-daterange-field`
+      pills, separated by an arrow, with a "Reset" button
+      (`#memberFilterReset`) that clears all three filters.
+    - `<p class="member-toolbar-error" id="memberDateError">` for
+      the inline "End date must be on or after start date." flag.
+  - **Strong red expiry pill** (May 2026 update — see
+    `Royal Gym Pics/plan expire bg.png` for reference). The
+    `.expiry-warning` rule now uses two new `style.css` `:root`
+    tokens — `--expiry-bg: #ef4444` (vivid red fill) and
+    `--expiry-bd: #dc2626` (slightly darker border) — with white
+    bold text and **no** outer halo box-shadow. The pill remains
+    legible on both surface and surface-2 backgrounds.
   - **Action row stays horizontal**: `.user-actions.member-actions`
     forces `flex-direction: row; flex-wrap: nowrap; align-items:
     center; gap: 6px;` and an explicit override inside the
@@ -306,7 +329,18 @@ No new dependencies. Flask, Werkzeug, and stdlib `sqlite3` + `datetime`.
   `.plan-*`, `.dash-*`, `.admin-*`, or `.user-*` rule. If a new tone is
   needed, add a `:root` variable in `style.css` first.
 - All templates `{% extends "base.html" %}`.
-- Vanilla JS only. Two blocks in `static/js/main.js`:
+- Vanilla JS only. Three blocks in `static/js/main.js`:
+  - **Members search + date-range filter**, gated by the presence
+    of `.members-table tbody`. Reads each row's
+    `data-search-name` (lowercased) and `data-search-mobile`
+    (digits-only) plus `data-join-date` to filter on input/change.
+    Search matches a substring of the name or, when the query
+    contains 2+ digits, a substring of the digits-only mobile.
+    Date inputs filter on `join_date`; if `from > to` the table is
+    hidden, both date pills get `.is-invalid`, and the inline
+    error span shows "End date must be on or after start date.".
+    A "Reset" button clears all three filters.
+    `#memberSearchEmpty` is shown when zero rows pass the filters.
   - **Member form validation**, gated by `#addMemberForm`. Mirrors
     every server-side rule, masks the mobile input to lock the `+91`
     prefix, disables the Save button until the form is valid, and tags
@@ -523,6 +557,31 @@ No new dependencies. Flask, Werkzeug, and stdlib `sqlite3` + `datetime`.
       inside a CSRF-stamped form with `title="Delete Plan"` and the
       existing `data-confirm` guard. Icon size, button shape, and
       spacing match Members.
+- [ ] **Sticky tabs** — scrolling `/admin/members` (and any other
+      admin page) keeps `.admin-tabs` pinned directly below the
+      page navbar (z-index below the navbar but above content),
+      with a soft drop-shadow. Works at 1440px, 1024px, 768px,
+      and 360px viewports.
+- [ ] **Member search** — typing into `#memberSearch` filters the
+      list in real time. Matches by case-insensitive name substring
+      and by digits-only mobile substring (so `+91 98765`,
+      `9876543210`, and `876543` all hit the same row). The
+      Username/email column is **not** searched.
+      `#memberSearchEmpty` shows "No members found matching the
+      current filters." when zero rows match.
+- [ ] **Date range filter** — both `#memberFrom` and `#memberTo`
+      open the native calendar picker. Selecting a range narrows
+      the visible rows to those whose `join_date` falls inside
+      `[from, to]` (inclusive). Either bound may be left blank for
+      an open-ended range. Setting `from > to` blanks the list,
+      tags both pills with `.is-invalid`, and surfaces "End date
+      must be on or after start date." in `#memberDateError`. The
+      Reset button clears all three filters.
+- [ ] **Expiry pill colour** — a member whose `plan_expire_date`
+      falls in the current calendar month shows the bold red
+      `.expiry-warning` pill (background `#ef4444`, white bold
+      text, warning-triangle icon) — visually matching
+      `Royal Gym Pics/plan expire bg.png`.
 - [ ] At 1440px viewport: list table renders inline; Add Member button
       sits on the right of the panel header. At 768px: the form stacks
       vertically; the table scrolls horizontally without page overflow.
