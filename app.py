@@ -354,10 +354,20 @@ def admin_settings_delete(user_id):
         return redirect(url_for('admin_settings'))
 
     try:
-        delete_member(user_id)
-        flash(f"Deleted {target['name']}.", 'success')
+        rowcount = delete_member(user_id)
+        if rowcount == 0:
+            app.logger.warning(
+                'Settings delete affected 0 rows: id=%s name=%r', user_id, target['name'],
+            )
+            flash('Action failed. The user may have already been removed.', 'error')
+        else:
+            app.logger.info(
+                'User deleted via settings: id=%s name=%r role=%s by_admin=%s',
+                user_id, target['name'], target['role'], session.get('user_id'),
+            )
+            flash(f"Deleted {target['name']}.", 'success')
     except sqlite3.Error:
-        app.logger.exception('Delete failed')
+        app.logger.exception('Settings delete failed: id=%s', user_id)
         flash('Action failed. Please try again.', 'error')
     return redirect(url_for('admin_settings'))
 
@@ -747,10 +757,20 @@ def admin_members_delete(member_id):
         return redirect(url_for('admin_members'))
 
     try:
-        delete_member(member['id'])
-        flash(f"Deleted {member['name']}.", 'success')
+        rowcount = delete_member(member['id'])
+        if rowcount == 0:
+            app.logger.warning(
+                'Member delete affected 0 rows: id=%s name=%r', member['id'], member['name'],
+            )
+            flash('Action failed. The member may have already been removed.', 'error')
+        else:
+            app.logger.info(
+                'Member deleted: id=%s name=%r email=%r by_admin=%s',
+                member['id'], member['name'], member['email'], session.get('user_id'),
+            )
+            flash(f"Deleted {member['name']}.", 'success')
     except sqlite3.Error:
-        app.logger.exception('Member delete failed')
+        app.logger.exception('Member delete failed: id=%s', member['id'])
         flash('Action failed. Please try again.', 'error')
     return redirect(url_for('admin_members'))
 

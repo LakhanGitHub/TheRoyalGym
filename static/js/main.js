@@ -135,10 +135,22 @@ if (loginForm) {
     });
 }
 
-/* ===== Confirm-on-submit guard for destructive forms ===== */
+/* ===== Confirm-on-submit guard + loading state for destructive forms ===== */
+function lockDestructiveButton(form) {
+    const btn = form.querySelector('[type="submit"]');
+    if (!btn) return;
+    btn.disabled = true;
+    btn.setAttribute('aria-busy', 'true');
+    btn.classList.add('is-loading');
+}
+
 document.querySelectorAll('form[data-confirm]').forEach((form) => {
     form.addEventListener('submit', (e) => {
-        if (!window.confirm(form.dataset.confirm)) e.preventDefault();
+        if (!window.confirm(form.dataset.confirm)) {
+            e.preventDefault();
+            return;
+        }
+        lockDestructiveButton(form);
     });
 });
 
@@ -299,6 +311,13 @@ document.querySelectorAll('form[data-confirm]').forEach((form) => {
     /* Click on the dialog's backdrop closes it. */
     modal.addEventListener('click', (e) => {
         if (e.target === modal) closeModal();
+    });
+
+    /* Disable the Delete button while the POST is in flight. */
+    form.addEventListener('submit', () => {
+        if (typeof lockDestructiveButton === 'function') {
+            lockDestructiveButton(form);
+        }
     });
 })();
 

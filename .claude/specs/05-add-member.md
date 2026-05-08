@@ -119,11 +119,23 @@ Detail / search / filter remain deferred to step 06.
       join_date=?, address=?, plan_id=?, plan_expire_date=?,
       trainer_id=? WHERE id=?`. Email and username are intentionally
       NOT touched — the login credential is immutable from this surface.
-    - The existing `delete_member(member_id)` helper from step 03 is
-      reused unchanged.
+    - The existing `delete_member(member_id)` helper from step 03 now
+      **returns `cur.rowcount`** so callers can verify a row was
+      actually removed (zero rowcount logs a warning and surfaces a
+      generic flash). Both delete routes log the affected `id`,
+      `name`, and `by_admin` on success at INFO level so admins can
+      audit deletions in `app.logger`.
 
-- **No change to `seed_db()`** — existing seeds keep `mobile`, `plan_id`,
-  and the date columns NULL; the list page renders these as `—`.
+- **`seed_db()` is now empty-table-gated** (May 2026 bug fix). The
+  user-seed loop runs **only when `SELECT COUNT(*) FROM members = 0`**,
+  and the plan-seed loop only when `membership_plans` is empty. The
+  previous per-row `WHERE email = ?` / `WHERE name = ?` checks meant
+  any deleted seed user (e.g. `ansh@member.com`) was silently
+  re-inserted on the next server start, so admin-initiated deletions
+  appeared to "come back". Gating on table-emptiness keeps fresh
+  bootstraps working while making deletions stick.
+- The seeded admin row keeps `mobile`, `plan_id`, and the date columns
+  NULL on a fresh bootstrap; the list page renders these as `—`.
 
 All helpers use parameterised queries and the existing `get_db()` /
 `try…finally close()` pattern.
@@ -154,8 +166,13 @@ All helpers use parameterised queries and the existing `get_db()` /
            `<span class="member-mobile-text">` — **no** anchor wrapping
            and **no** hover effect (this column is read-only display,
            not an interactive call link).
-         - **Plan** cell shows a `.role-pill.role-pill-user` with the
-           joined `plan_name`, or `—` when null.
+         - **Plan** cell shows a `.plan-pill.plan-pill-{slug}` badge
+           where `{slug}` is `m.plan_name | lower | replace(' ', '-')`,
+           so each plan name picks up its own colour token. The
+           known slugs are `trial-plan` (blue), `monthly` (purple),
+           `quarterly` (orange), and `yearly` (green); any other
+           slug falls back to the neutral `.plan-pill` base. Renders
+           `—` when `plan_name` is null.
          - **Plan Expiry** cell renders `<span class="expiry-pill expiry-{state}">…</span>`,
            where `{state}` is computed in Jinja from `today_iso` /
            `current_month`:
@@ -286,6 +303,19 @@ All helpers use parameterised queries and the existing `get_db()` /
     `--expiry-bd: #dc2626` (slightly darker border) — with white
     bold text and **no** outer halo box-shadow. The pill remains
     legible on both surface and surface-2 backgrounds.
+  - **Plan badge palette** (May 2026): each membership plan gets
+    its own soft colour via `.plan-pill.plan-pill-{slug}`. Twelve
+    new `:root` tokens land in `style.css`:
+    `--plan-{trial|monthly|quarterly|yearly}-{bg,bd,fg}`, all
+    keyed to dark-theme-friendly tints (blue 59/130/246, purple
+    139/92/246, orange 249/115/22, emerald 16/185/129) at ~14%
+    fill / ~36% border with a brighter foreground for legibility.
+    The base `.plan-pill` rule keeps the same compact shape as
+    `.role-pill` (uppercase, 20px radius, 3×10 padding,
+    700-weight) so plans read as a coordinated badge family. An
+    unknown plan slug renders the neutral `.plan-pill` base
+    (surface-2 fill, secondary text), so admin-added custom
+    plans degrade gracefully.
   - **Action row stays horizontal**: `.user-actions.member-actions`
     forces `flex-direction: row; flex-wrap: nowrap; align-items:
     center; gap: 6px;` and an explicit override inside the
@@ -597,6 +627,38 @@ No new dependencies. Flask, Werkzeug, and stdlib `sqlite3` + `datetime`.
       `.expiry-warning` pill (background `#ef4444`, white bold
       text, warning-triangle icon) — visually matching
       `Royal Gym Pics/plan expire bg.png`.
+- [ ] **Plan badge colours** — the Members table Plan column
+      renders each plan name as `.plan-pill.plan-pill-{slug}`:
+      Trial Plan as a soft blue pill, Monthly as purple,
+      Quarterly as orange, and Yearly as green. All four pills
+      share the compact 20px-radius shape, uppercase tracking,
+      and 700-weight type. An admin-created custom plan with an
+      unknown slug falls back to the neutral `.plan-pill` base
+      (no error). Verify by inspecting at least one row per plan
+      via the seeded data.
+- [ ] **Delete persists across restart** — delete `ansh@member.com`
+      via `/admin/members/&lt;id&gt;/delete` (or the Settings
+      delete), then stop and re-launch `python theroyalgym/app.py`.
+      Confirm via `sqlite3 gym.db "SELECT COUNT(*) FROM members
+      WHERE email='ansh@member.com';"` that the count is `0` AND
+      the next `/admin/members` request shows the row gone. Repeats
+      for any non-admin row in `/admin/settings`. (Regression
+      guard for the May 2026 bug where `seed_db()` re-inserted any
+      deleted seed account on each server start.)
+- [ ] **Delete logging** — a successful `/admin/members/&lt;id&gt;/delete`
+      writes a single INFO line of the form
+      `Member deleted: id=… name=… email=… by_admin=…` to
+      `app.logger`; a successful Settings delete writes
+      `User deleted via settings: id=… name=… role=… by_admin=…`.
+      A no-op delete (rowcount 0) writes a WARNING line and
+      flashes "Action failed. The user/member may have already
+      been removed.".
+- [ ] **Loading state on delete** — clicking the trash icon in the
+      delete-confirmation modal disables the Delete button (with
+      `[disabled][aria-busy="true"].is-loading`) for the duration
+      of the POST so a double-tap can't fire twice. The same lock
+      applies to any `form[data-confirm]` after the user confirms
+      (Settings delete, plan delete, role toggle).
 - [ ] At 1440px viewport: list table renders inline; Add Member button
       sits on the right of the panel header. At 768px: the form stacks
       vertically; the table scrolls horizontally without page overflow.

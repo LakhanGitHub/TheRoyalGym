@@ -175,7 +175,7 @@ The Royal Gym Team
                             </td>
                             <td>
                                 {% if m.plan_name %}
-                                <span class="role-pill role-pill-user">{{ m.plan_name }}</span>
+                                <span class="plan-pill plan-pill-{{ m.plan_name|lower|replace(' ', '-') }}">{{ m.plan_name }}</span>
                                 {% else %}
                                 &mdash;
                                 {% endif %}

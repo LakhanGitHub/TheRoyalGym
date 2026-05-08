@@ -80,41 +80,43 @@ def init_db():
 
 
 def seed_db():
+    """First-run bootstrap data. Only inserts seeds when the corresponding
+    table is empty so admin-initiated deletions can never be reversed by a
+    server restart.
+    """
     admin_password = os.environ.get('SEED_ADMIN_PASSWORD', '123456')
     member_password = os.environ.get('SEED_MEMBER_PASSWORD', '123456')
-    seeds = [
+    user_seeds = [
         {'name': 'lakhan', 'email': 'lakhan@admin.com',  'password': admin_password,  'role': 'admin'},
         {'name': 'ansh',   'email': 'ansh@member.com',   'password': member_password, 'role': 'user'},
     ]
+    plan_seeds = [
+        {'name': 'Trial Plan', 'duration_months': 0, 'duration_days': 5, 'fee':  200.00},
+        {'name': 'Monthly',    'duration_months': 1, 'duration_days': 0, 'fee': 1200.00},
+    ]
+
     conn = get_db()
     try:
-        for seed in seeds:
-            email = seed['email'].lower()
-            existing = conn.execute(
-                'SELECT id, role FROM members WHERE email = ?', (email,)
-            ).fetchone()
-            if not existing:
+        member_count = conn.execute('SELECT COUNT(*) AS c FROM members').fetchone()['c']
+        if member_count == 0:
+            for seed in user_seeds:
                 conn.execute(
-                    'INSERT INTO members (name, email, password_hash, role) VALUES (:name, :email, :password_hash, :role)',
+                    'INSERT INTO members (name, email, password_hash, role) '
+                    'VALUES (:name, :email, :password_hash, :role)',
                     {
                         'name': seed['name'],
-                        'email': email,
+                        'email': seed['email'].lower(),
                         'password_hash': generate_password_hash(seed['password']),
                         'role': seed['role'],
                     }
                 )
 
-        plan_seeds = [
-            {'name': 'Trial Plan', 'duration_months': 0, 'duration_days': 5, 'fee':  200.00},
-            {'name': 'Monthly',    'duration_months': 1, 'duration_days': 0, 'fee': 1200.00},
-        ]
-        for plan in plan_seeds:
-            existing = conn.execute(
-                'SELECT id FROM membership_plans WHERE name = ?', (plan['name'],)
-            ).fetchone()
-            if not existing:
+        plan_count = conn.execute('SELECT COUNT(*) AS c FROM membership_plans').fetchone()['c']
+        if plan_count == 0:
+            for plan in plan_seeds:
                 conn.execute(
-                    'INSERT INTO membership_plans (name, duration_months, duration_days, fee) VALUES (?, ?, ?, ?)',
+                    'INSERT INTO membership_plans (name, duration_months, duration_days, fee) '
+                    'VALUES (?, ?, ?, ?)',
                     (plan['name'], plan['duration_months'], plan['duration_days'], plan['fee'])
                 )
         conn.commit()
@@ -278,10 +280,12 @@ def update_member_password(user_id, new_hash):
 
 
 def delete_member(user_id):
+    """Returns the number of rows deleted (0 if the id no longer exists)."""
     conn = get_db()
     try:
-        conn.execute('DELETE FROM members WHERE id = ?', (user_id,))
+        cur = conn.execute('DELETE FROM members WHERE id = ?', (user_id,))
         conn.commit()
+        return cur.rowcount
     finally:
         conn.close()
 

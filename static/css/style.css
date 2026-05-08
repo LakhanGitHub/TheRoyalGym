@@ -26,6 +26,20 @@
     --expiry-bg:          #ef4444;
     --expiry-bd:          #dc2626;
 
+    /* Plan badge palette (Members table — soft tints, dark-theme friendly) */
+    --plan-trial-bg:      rgba(59,130,246,.14);
+    --plan-trial-bd:      rgba(59,130,246,.36);
+    --plan-trial-fg:      #93c5fd;
+    --plan-monthly-bg:    rgba(139,92,246,.14);
+    --plan-monthly-bd:    rgba(139,92,246,.36);
+    --plan-monthly-fg:    #c4b5fd;
+    --plan-quarterly-bg:  rgba(249,115,22,.14);
+    --plan-quarterly-bd:  rgba(249,115,22,.36);
+    --plan-quarterly-fg:  #fdba74;
+    --plan-yearly-bg:     rgba(16,185,129,.14);
+    --plan-yearly-bd:     rgba(16,185,129,.36);
+    --plan-yearly-fg:     #6ee7b7;
+
     /* Warning accent (edit / cautionary affordances — soft yellow pill) */
     --warning-bg:         rgba(245,166,35,.15);
     --warning-bg-hover:   rgba(245,166,35,.28);

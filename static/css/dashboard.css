@@ -132,6 +132,25 @@
 .role-pill-admin  { background: rgba(245,166,35,.12); color: var(--accent-gold); border: 1px solid rgba(245,166,35,.25); }
 .role-pill-user   { background: rgba(16,185,129,.1);  color: #34d399;            border: 1px solid rgba(16,185,129,.25); }
 
+/* Plan badge — colour-coded pill per membership plan name */
+.plan-pill {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    background: var(--surface-2);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+.plan-pill-trial-plan { background: var(--plan-trial-bg);     color: var(--plan-trial-fg);     border-color: var(--plan-trial-bd); }
+.plan-pill-monthly    { background: var(--plan-monthly-bg);   color: var(--plan-monthly-fg);   border-color: var(--plan-monthly-bd); }
+.plan-pill-quarterly  { background: var(--plan-quarterly-bg); color: var(--plan-quarterly-fg); border-color: var(--plan-quarterly-bd); }
+.plan-pill-yearly     { background: var(--plan-yearly-bg);    color: var(--plan-yearly-fg);    border-color: var(--plan-yearly-bd); }
+
 /* Profile card */
 .profile-card {
     padding: 28px 26px;
@@ -1336,6 +1355,12 @@
 .member-icon-btn[aria-disabled="true"] {
     cursor: not-allowed;
     opacity: .45;
+}
+.member-icon-btn.is-loading,
+.user-action-btn.is-loading {
+    cursor: progress;
+    opacity: .7;
+    pointer-events: none;
 }
 .member-icon-btn[disabled]:hover,
 .member-icon-btn[aria-disabled="true"]:hover {
