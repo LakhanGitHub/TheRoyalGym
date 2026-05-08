@@ -18,7 +18,7 @@ from database.db import (
     count_members_registered_today,
     update_member_role, update_member_password, delete_member, count_admins,
     get_all_plans, get_plan_by_id, create_plan, update_plan, delete_plan,
-    create_member, update_member,
+    create_member, update_member, update_member_self,
     get_all_payments, get_payment_by_id,
     create_payment, update_payment, delete_payment,
     is_valid_email, is_valid_mobile, is_valid_indian_mobile,
@@ -64,6 +64,53 @@ def _add_duration(start_iso, months, days):
     if days:
         start = start + timedelta(days=days)
     return start.isoformat()
+
+
+def _membership_status(plan_expire_iso):
+    """Derive membership status from plan_expire_date. Status is never stored.
+
+    Returns a dict {label, css_class, days_remaining, is_expired}.
+    `days_remaining` is positive while the plan is active; `is_expired` flips
+    to True once the expiry date is in the past, in which case
+    `days_remaining` reports how many days ago the plan expired (positive).
+    """
+    if not plan_expire_iso:
+        return {
+            'label': 'No active plan',
+            'css_class': 'expiry-active',
+            'days_remaining': 0,
+            'is_expired': False,
+        }
+    try:
+        expire = date.fromisoformat(plan_expire_iso)
+    except ValueError:
+        return {
+            'label': 'No active plan',
+            'css_class': 'expiry-active',
+            'days_remaining': 0,
+            'is_expired': False,
+        }
+    delta = (expire - date.today()).days
+    if delta < 0:
+        return {
+            'label': 'Expired',
+            'css_class': 'expiry-expired',
+            'days_remaining': -delta,
+            'is_expired': True,
+        }
+    if delta <= 7:
+        return {
+            'label': 'Expiring soon',
+            'css_class': 'expiry-warning',
+            'days_remaining': delta,
+            'is_expired': False,
+        }
+    return {
+        'label': 'Active',
+        'css_class': 'expiry-active',
+        'days_remaining': delta,
+        'is_expired': False,
+    }
 
 
 ADMIN_NAV_ITEMS = [
@@ -163,7 +210,7 @@ member_required = role_required('user')
 
 
 def _dashboard_url_for(role):
-    return url_for('admin_dashboard') if role == 'admin' else url_for('member_dashboard')
+    return url_for('admin_dashboard') if role == 'admin' else url_for('member_profile')
 
 
 # ---------- Security headers ----------
@@ -1006,11 +1053,159 @@ def admin_payments_delete(payment_id):
     return redirect(url_for('admin_payments'))
 
 
+# ---------- Member self-service ----------
+def _empty_self_prefill(member):
+    return {
+        'mobile':  member['mobile'] or '+91',
+        'age':     str(member['age']) if member['age'] is not None else '',
+        'gender':  member['gender'] or '',
+        'address': member['address'] or '',
+    }
+
+
+def _read_self_form(form):
+    return {
+        'mobile':  form.get('mobile', '').strip(),
+        'age':     form.get('age', '').strip(),
+        'gender':  form.get('gender', '').strip(),
+        'address': form.get('address', '').strip(),
+    }
+
+
+def _validate_self_form(prefill):
+    """Returns (parsed_dict, error_message). On success error_message is None."""
+    if not prefill['mobile'] or not is_valid_indian_mobile(prefill['mobile']):
+        return None, 'Mobile number must be in the format +91XXXXXXXXXX (10 digits, starting 6-9).'
+
+    age = None
+    if prefill['age']:
+        try:
+            age = int(prefill['age'])
+            if age < 5 or age > 120:
+                raise ValueError()
+        except ValueError:
+            return None, 'Age must be a whole number between 5 and 120.'
+
+    gender = prefill['gender'] or None
+    if gender and gender not in GENDER_OPTIONS:
+        return None, 'Gender selection is invalid.'
+
+    address = prefill['address'] or None
+    if address and len(address) > 500:
+        return None, 'Address is too long (max 500 characters).'
+
+    return {
+        'mobile':  prefill['mobile'],
+        'age':     age,
+        'gender':  gender,
+        'address': address,
+    }, None
+
+
+def _render_member_profile(member, prefill):
+    payments = get_all_payments(member_id=member['id'])
+    total_paid = sum(p['amount'] for p in payments if p['status'] == 'paid')
+    plan_fee = member['plan_fee']
+    if member['plan_id'] and plan_fee is not None:
+        remaining = max(0.0, float(plan_fee) - float(total_paid))
+    else:
+        remaining = None
+    status_meta = _membership_status(member['plan_expire_date'])
+    return render_template(
+        'member_profile.html',
+        member=member,
+        payments_recent=payments[:5],
+        total_paid=total_paid,
+        remaining=remaining,
+        plan_fee=plan_fee,
+        status_meta=status_meta,
+        gender_options=GENDER_OPTIONS,
+        prefill=prefill,
+    )
+
+
+@app.route('/member/profile', methods=['GET', 'POST'])
+@member_required
+def member_profile():
+    member = get_member_by_id(session['user_id'])
+    if not member:
+        session.clear()
+        flash('Your session is no longer valid. Please log in again.', 'error')
+        return redirect(url_for('login'))
+
+    if request.method == 'GET':
+        return _render_member_profile(member, _empty_self_prefill(member))
+
+    if not _valid_csrf(request.form.get('csrf_token')):
+        abort(403)
+
+    prefill = _read_self_form(request.form)
+    parsed, err = _validate_self_form(prefill)
+    if err:
+        flash(err, 'error')
+        return _render_member_profile(member, prefill)
+
+    try:
+        update_member_self(
+            member_id=session['user_id'],
+            mobile=parsed['mobile'],
+            age=parsed['age'],
+            gender=parsed['gender'],
+            address=parsed['address'],
+        )
+        flash('Profile updated.', 'success')
+        return redirect(url_for('member_profile'))
+    except sqlite3.Error:
+        app.logger.exception('Member self-update failed: id=%s', session['user_id'])
+        flash('Action failed. Please try again.', 'error')
+        return _render_member_profile(member, prefill)
+
+
+@app.route('/member/profile/password', methods=['POST'])
+@member_required
+def member_profile_password():
+    if not _valid_csrf(request.form.get('csrf_token')):
+        abort(403)
+
+    old_password     = request.form.get('old_password', '')
+    new_password     = request.form.get('new_password', '')
+    confirm_password = request.form.get('confirm_password', '')
+
+    if not old_password or not new_password or not confirm_password:
+        flash('All password fields are required.', 'error')
+        return redirect(url_for('member_profile'))
+    if len(new_password) < 6 or len(new_password) > 200:
+        flash('New password must be between 6 and 200 characters.', 'error')
+        return redirect(url_for('member_profile'))
+    if new_password != confirm_password:
+        flash('New passwords do not match.', 'error')
+        return redirect(url_for('member_profile'))
+
+    member = get_member_by_id(session['user_id'])
+    if not member:
+        session.clear()
+        flash('Your session is no longer valid. Please log in again.', 'error')
+        return redirect(url_for('login'))
+
+    auth_row = get_member_by_email(member['email'])
+    if not auth_row or not check_password_hash(auth_row['password_hash'], old_password):
+        flash('Current password is incorrect.', 'error')
+        return redirect(url_for('member_profile'))
+
+    try:
+        update_member_password(session['user_id'], generate_password_hash(new_password))
+        app.logger.info('Member password changed: id=%s', session['user_id'])
+        flash('Password updated.', 'success')
+    except sqlite3.Error:
+        app.logger.exception('Member password update failed: id=%s', session['user_id'])
+        flash('Action failed. Please try again.', 'error')
+    return redirect(url_for('member_profile'))
+
+
 @app.route('/member/dashboard')
 @member_required
 def member_dashboard():
-    member = get_member_by_id(session['user_id'])
-    return render_template('member_dashboard.html', member=member)
+    return redirect(url_for('member_profile'))
 
 
 @app.route('/enquiry', methods=['POST'])
