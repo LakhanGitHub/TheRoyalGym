@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% set is_edit = mode == 'edit' %}
+{% set form_action = url_for('admin_payments_edit', payment_id=payment.id) if is_edit else url_for('admin_payments_new') %}
+{% set page_title = 'Edit Payment' if is_edit else 'Record Payment' %}
+{% set page_subtitle = 'Update the recorded payment details.' if is_edit else 'Record a member fee transaction.' %}
+{% set submit_label = 'Save changes' if is_edit else 'Save payment' %}
+{% block title %}{{ page_title }} &mdash; The Royal Gym{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="dash-section">
+    <div class="dash-container">
+
+        {% include "_admin_tabs.html" %}
+
+        <section class="dash-panel plan-form-panel">
+            <header class="plans-header">
+                <div class="plans-heading">
+                    <span class="plans-crown" aria-hidden="true">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="6" width="18" height="13" rx="2"/>
+                            <path d="M3 10h18"/>
+                            <path d="M7 15h2"/>
+                            <path d="M12 15h2"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <h1 class="plans-title">{{ page_title }}</h1>
+                        <p class="plans-subtitle">{{ page_subtitle }}</p>
+                    </div>
+                </div>
+                <a href="{{ url_for('admin_payments') }}" class="user-action-btn">&larr; Back to Payments</a>
+            </header>
+
+            <form method="post" class="member-form" id="paymentForm" action="{{ form_action }}" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <!-- Member & Plan -->
+                <fieldset class="member-form-section">
+                    <legend class="member-form-section-title">
+                        <span class="member-form-section-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
+                            </svg>
+                        </span>
+                        <span class="member-form-section-heading">Member &amp; Plan</span>
+                    </legend>
+
+                    <div class="member-form-grid member-form-grid-2">
+                        <label class="member-field" for="paymentMember">
+                            <span class="member-field-label">Member <span class="member-required">*</span></span>
+                            <span class="member-input-wrap">
+                                <span class="member-input-icon" aria-hidden="true">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="8" r="4"/>
+                                        <path d="M4 21v-1a6 6 0 0 1 6 -6h4a6 6 0 0 1 6 6v1"/>
+                                    </svg>
+                                </span>
+                                <select name="member_id" id="paymentMember" class="member-input member-input-select" required
+                                        data-validate="member_id"
+                                        aria-describedby="paymentMemberError">
+                                    <option value="" disabled{% if not prefill.member_id %} selected{% endif %}>Select a member&hellip;</option>
+                                    {% for m in members %}
+                                    <option value="{{ m.id }}"{% if prefill.member_id == m.id|string %} selected{% endif %}>{{ m.name }} &mdash; {{ m.email }}</option>
+                                    {% endfor %}
+                                </select>
+                            </span>
+                            <span class="member-error" id="paymentMemberError" role="alert"></span>
+                        </label>
+
+                        <label class="member-field" for="paymentPlan">
+                            <span class="member-field-label">Plan</span>
+                            <span class="member-input-wrap">
+                                <span class="member-input-icon" aria-hidden="true">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 7l4 4l5 -7l5 7l4 -4v11a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1z"/>
+                                    </svg>
+                                </span>
+                                <select name="plan_id" id="paymentPlan" class="member-input member-input-select"
+                                        aria-describedby="paymentPlanError">
+                                    <option value=""{% if not prefill.plan_id %} selected{% endif %}>No plan</option>
+                                    {% for p in plans %}
+                                    <option value="{{ p.id }}"{% if prefill.plan_id == p.id|string %} selected{% endif %}>{{ p.name }} ({{ format_plan_duration(p.duration_months, p.duration_days) }})</option>
+                                    {% endfor %}
+                                </select>
+                            </span>
+                            <span class="member-error" id="paymentPlanError" role="alert"></span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <!-- Payment details -->
+                <fieldset class="member-form-section">
+                    <legend class="member-form-section-title">
+                        <span class="member-form-section-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="6" width="18" height="13" rx="2"/>
+                                <path d="M3 10h18"/>
+                            </svg>
+                        </span>
+                        <span class="member-form-section-heading">Payment details</span>
+                    </legend>
+
+                    <div class="member-form-grid">
+                        <label class="member-field" for="paymentAmount">
+                            <span class="member-field-label">Amount (&#8377;) <span class="member-required">*</span></span>
+                            <span class="member-input-wrap">
+                                <span class="member-input-icon" aria-hidden="true">&#8377;</span>
+                                <input type="number" name="amount" id="paymentAmount" class="member-input"
+                                       value="{{ prefill.amount }}"
+                                       required min="0.01" max="10000000" step="0.01"
+                                       data-validate="amount"
+                                       aria-describedby="paymentAmountError"
+                                       placeholder="e.g. 1200.00">
+                            </span>
+                            <span class="member-error" id="paymentAmountError" role="alert"></span>
+                        </label>
+
+                        <label class="member-field" for="paymentDate">
+                            <span class="member-field-label">Payment Date <span class="member-required">*</span></span>
+                            <span class="member-input-wrap">
+                                <span class="member-input-icon" aria-hidden="true">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="4" y="5" width="16" height="16" rx="2"/>
+                                        <path d="M16 3v4"/><path d="M8 3v4"/><path d="M4 11h16"/>
+                                    </svg>
+                                </span>
+                                <input type="date" name="paid_on" id="paymentDate" class="member-input"
+                                       value="{{ prefill.paid_on }}"
+                                       required
+                                       max="2099-12-31"
+                                       data-validate="paid_on"
+                                       aria-describedby="paymentDateError"
+                                       placeholder="YYYY-MM-DD">
+                            </span>
+                            <span class="member-error" id="paymentDateError" role="alert"></span>
+                        </label>
+
+                        <label class="member-field" for="paymentMode">
+                            <span class="member-field-label">Mode <span class="member-required">*</span></span>
+                            <span class="member-input-wrap">
+                                <span class="member-input-icon" aria-hidden="true">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="6" width="18" height="13" rx="2"/>
+                                        <path d="M3 10h18"/>
+                                    </svg>
+                                </span>
+                                <select name="method" id="paymentMode" class="member-input member-input-select" required>
+                                    {% for m in payment_methods %}
+                                    <option value="{{ m }}"{% if prefill.method == m %} selected{% endif %}>
+                                        {% if m == 'upi' %}UPI{% else %}{{ m|capitalize }}{% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </span>
+                        </label>
+
+                        <label class="member-field" for="paymentStatusField">
+                            <span class="member-field-label">Status <span class="member-required">*</span></span>
+                            <span class="member-input-wrap">
+                                <span class="member-input-icon" aria-hidden="true">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M5 12l5 5l9 -9"/>
+                                    </svg>
+                                </span>
+                                <select name="status" id="paymentStatusField" class="member-input member-input-select" required>
+                                    {% for s in payment_statuses %}
+                                    <option value="{{ s }}"{% if prefill.status == s %} selected{% endif %}>{{ s|capitalize }}</option>
+                                    {% endfor %}
+                                </select>
+                            </span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <!-- Notes -->
+                <fieldset class="member-form-section">
+                    <legend class="member-form-section-title">
+                        <span class="member-form-section-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 21v-13a3 3 0 0 1 3 -3h10a3 3 0 0 1 3 3v6a3 3 0 0 1 -3 3h-9l-4 4"/>
+                                <path d="M8 9h8"/>
+                                <path d="M8 13h6"/>
+                            </svg>
+                        </span>
+                        <span class="member-form-section-heading">Notes</span>
+                        <span class="member-form-section-sub">Optional remarks &mdash; e.g. "Full payment received", "₹500 pending", "Renewal requested".</span>
+                    </legend>
+
+                    <div class="member-form-grid">
+                        <label class="member-field member-field-wide" for="paymentNotes">
+                            <span class="member-field-label">Notes</span>
+                            <span class="member-input-wrap member-input-wrap-textarea">
+                                <textarea name="notes" id="paymentNotes" class="member-input member-input-textarea"
+                                          rows="2" maxlength="500"
+                                          placeholder="Optional payment notes (max 500 chars)">{{ prefill.notes }}</textarea>
+                            </span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <div class="member-form-actions">
+                    <button type="submit" id="paymentSubmit" class="plans-add-btn">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M5 12l5 5l9 -9"/>
+                        </svg>
+                        {{ submit_label }}
+                    </button>
+                    <a href="{{ url_for('admin_payments') }}" class="user-action-btn">&times; Cancel</a>
+                </div>
+
+                <p class="member-form-note">Fields marked with <span class="member-required">*</span> are mandatory.</p>
+            </form>
+        </section>
+
+    </div>
+</section>
+{% endblock %}

@@ -19,6 +19,8 @@ from database.db import (
     update_member_role, update_member_password, delete_member, count_admins,
     get_all_plans, get_plan_by_id, create_plan, update_plan, delete_plan,
     create_member, update_member,
+    get_all_payments, get_payment_by_id,
+    create_payment, update_payment, delete_payment,
     is_valid_email, is_valid_mobile, is_valid_indian_mobile,
     is_valid_username, normalize_username_to_email,
 )
@@ -30,6 +32,8 @@ PLAN_DURATIONS = {
     'Yearly':     (12, 0),
 }
 GENDER_OPTIONS = ('Male', 'Female', 'Other')
+PAYMENT_METHODS = ('cash', 'upi', 'card', 'online')
+PAYMENT_STATUSES = ('paid', 'pending')
 
 
 def _format_plan_duration(months, days):
@@ -66,7 +70,7 @@ ADMIN_NAV_ITEMS = [
     {'label': 'Members',       'endpoint': 'admin_members',  'desc': 'Add, edit and search members.',         'color': 'cyan'},
     {'label': 'Plans',         'endpoint': 'admin_plans',    'desc': 'Membership plans and pricing.',         'color': 'pink'},
     {'label': 'Trainers',      'endpoint': None,             'desc': 'Roster, schedules and payouts.',        'color': 'purple'},
-    {'label': 'Payments',      'endpoint': None,             'desc': 'Paid and pending invoices.',            'color': 'orange'},
+    {'label': 'Payments',      'endpoint': 'admin_payments', 'desc': 'Paid and pending invoices.',            'color': 'orange'},
     {'label': 'Attendance',    'endpoint': None,             'desc': 'Daily check-in records.',               'color': 'cyan'},
     {'label': 'Diet',          'endpoint': None,             'desc': 'Meal plans for members.',               'color': 'pink'},
     {'label': 'Equipment',     'endpoint': None,             'desc': 'Inventory and purchase records.',       'color': 'purple'},
@@ -773,6 +777,233 @@ def admin_members_delete(member_id):
         app.logger.exception('Member delete failed: id=%s', member['id'])
         flash('Action failed. Please try again.', 'error')
     return redirect(url_for('admin_members'))
+
+
+# ---------- Payments ----------
+def _empty_payment_prefill():
+    return {
+        'member_id': '', 'plan_id': '', 'amount': '',
+        'paid_on': '', 'method': 'cash', 'status': 'paid', 'notes': '',
+    }
+
+
+def _prefill_from_payment(payment):
+    return {
+        'member_id': str(payment['member_id']) if payment['member_id'] else '',
+        'plan_id':   str(payment['plan_id']) if payment['plan_id'] else '',
+        'amount':    f"{payment['amount']:.2f}" if payment['amount'] is not None else '',
+        'paid_on':   payment['paid_on'] or '',
+        'method':    payment['method'] or 'cash',
+        'status':    payment['status'] or 'paid',
+        'notes':     payment['notes'] or '',
+    }
+
+
+def _read_payment_form(form):
+    return {
+        'member_id': form.get('member_id', '').strip(),
+        'plan_id':   form.get('plan_id', '').strip(),
+        'amount':    form.get('amount', '').strip(),
+        'paid_on':   form.get('paid_on', '').strip(),
+        'method':    form.get('method', '').strip().lower(),
+        'status':    form.get('status', '').strip().lower(),
+        'notes':     form.get('notes', '').strip(),
+    }
+
+
+def _validate_payment_form(prefill):
+    """Validate payment fields. Returns (parsed, error_message)."""
+    if not prefill['member_id']:
+        return None, 'Member is required.'
+    try:
+        member_id = int(prefill['member_id'])
+    except ValueError:
+        return None, 'Selected member is invalid.'
+    member = get_member_by_id(member_id)
+    if not member or member['role'] != 'user':
+        return None, 'Selected member no longer exists.'
+
+    plan_id = None
+    if prefill['plan_id']:
+        try:
+            plan_id = int(prefill['plan_id'])
+        except ValueError:
+            return None, 'Selected plan is invalid.'
+        if not get_plan_by_id(plan_id):
+            return None, 'Selected plan no longer exists.'
+
+    if not prefill['amount']:
+        return None, 'Amount is required.'
+    try:
+        amount = float(prefill['amount'])
+    except ValueError:
+        return None, 'Amount must be a valid number.'
+    if amount <= 0 or amount > 10_000_000:
+        return None, 'Amount must be greater than 0 and at most 10,000,000.'
+    amount = round(amount, 2)
+
+    if not prefill['paid_on']:
+        return None, 'Payment date is required.'
+    try:
+        date.fromisoformat(prefill['paid_on'])
+    except ValueError:
+        return None, 'Payment date must be a valid date (YYYY-MM-DD).'
+
+    if prefill['method'] not in PAYMENT_METHODS:
+        return None, 'Payment mode must be Cash, UPI, Card, or Online.'
+
+    if prefill['status'] not in PAYMENT_STATUSES:
+        return None, 'Payment status must be Paid or Pending.'
+
+    notes = prefill['notes'] or None
+    if notes and len(notes) > 500:
+        return None, 'Notes are too long (max 500 characters).'
+
+    return {
+        'member_id': member_id,
+        'plan_id':   plan_id,
+        'amount':    amount,
+        'paid_on':   prefill['paid_on'],
+        'method':    prefill['method'],
+        'status':    prefill['status'],
+        'notes':     notes,
+    }, None
+
+
+def _render_payment_form(prefill, mode='new', payment=None):
+    return render_template(
+        'admin_payment_form.html',
+        nav_items=ADMIN_NAV_ITEMS,
+        members=get_all_members(role='user'),
+        plans=get_all_plans(),
+        payment_methods=PAYMENT_METHODS,
+        payment_statuses=PAYMENT_STATUSES,
+        prefill=prefill,
+        active_tab='Payments',
+        mode=mode,
+        payment=payment,
+    )
+
+
+@app.route('/admin/payments')
+@admin_required
+def admin_payments():
+    return render_template(
+        'admin_payments.html',
+        nav_items=ADMIN_NAV_ITEMS,
+        payments=get_all_payments(),
+        payment_statuses=PAYMENT_STATUSES,
+        active_tab='Payments',
+    )
+
+
+@app.route('/admin/payments/new', methods=['GET', 'POST'])
+@admin_required
+def admin_payments_new():
+    if request.method == 'GET':
+        return _render_payment_form(_empty_payment_prefill())
+
+    if not _valid_csrf(request.form.get('csrf_token')):
+        abort(403)
+
+    prefill = _read_payment_form(request.form)
+    parsed, err = _validate_payment_form(prefill)
+    if err:
+        flash(err, 'error')
+        return _render_payment_form(prefill)
+
+    try:
+        payment_id = create_payment(
+            member_id=parsed['member_id'], plan_id=parsed['plan_id'],
+            amount=parsed['amount'], paid_on=parsed['paid_on'],
+            method=parsed['method'], status=parsed['status'],
+            notes=parsed['notes'],
+        )
+        member = get_member_by_id(parsed['member_id'])
+        app.logger.info(
+            'Payment created: id=%s member=%r amount=%s status=%s by_admin=%s',
+            payment_id, member['name'] if member else '?', parsed['amount'],
+            parsed['status'], session.get('user_id'),
+        )
+        flash(f"Payment recorded for {member['name'] if member else 'member'}.", 'success')
+        return redirect(url_for('admin_payments'))
+    except sqlite3.Error:
+        app.logger.exception('Payment create failed')
+        flash('Action failed. Please try again.', 'error')
+        return _render_payment_form(prefill)
+
+
+@app.route('/admin/payments/<int:payment_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def admin_payments_edit(payment_id):
+    payment = get_payment_by_id(payment_id)
+    if not payment:
+        flash('Payment not found.', 'error')
+        return redirect(url_for('admin_payments'))
+
+    if request.method == 'GET':
+        return _render_payment_form(_prefill_from_payment(payment), mode='edit', payment=payment)
+
+    if not _valid_csrf(request.form.get('csrf_token')):
+        abort(403)
+
+    prefill = _read_payment_form(request.form)
+    parsed, err = _validate_payment_form(prefill)
+    if err:
+        flash(err, 'error')
+        return _render_payment_form(prefill, mode='edit', payment=payment)
+
+    try:
+        rowcount = update_payment(
+            payment_id=payment['id'],
+            member_id=parsed['member_id'], plan_id=parsed['plan_id'],
+            amount=parsed['amount'], paid_on=parsed['paid_on'],
+            method=parsed['method'], status=parsed['status'],
+            notes=parsed['notes'],
+        )
+        if rowcount == 0:
+            app.logger.warning('Payment update affected 0 rows: id=%s', payment['id'])
+            flash('Action failed. The payment may have been removed.', 'error')
+        else:
+            app.logger.info(
+                'Payment updated: id=%s amount=%s status=%s by_admin=%s',
+                payment['id'], parsed['amount'], parsed['status'], session.get('user_id'),
+            )
+            flash(f"Payment #{payment['id']} updated.", 'success')
+        return redirect(url_for('admin_payments'))
+    except sqlite3.Error:
+        app.logger.exception('Payment update failed: id=%s', payment['id'])
+        flash('Action failed. Please try again.', 'error')
+        return _render_payment_form(prefill, mode='edit', payment=payment)
+
+
+@app.route('/admin/payments/<int:payment_id>/delete', methods=['POST'])
+@admin_required
+def admin_payments_delete(payment_id):
+    if not _valid_csrf(request.form.get('csrf_token')):
+        abort(403)
+
+    payment = get_payment_by_id(payment_id)
+    if not payment:
+        flash('Payment not found.', 'error')
+        return redirect(url_for('admin_payments'))
+
+    try:
+        rowcount = delete_payment(payment['id'])
+        if rowcount == 0:
+            app.logger.warning('Payment delete affected 0 rows: id=%s', payment['id'])
+            flash('Action failed. The payment may have already been removed.', 'error')
+        else:
+            app.logger.info(
+                'Payment deleted: id=%s member=%r amount=%s by_admin=%s',
+                payment['id'], payment['member_name'], payment['amount'],
+                session.get('user_id'),
+            )
+            flash(f"Deleted payment #{payment['id']}.", 'success')
+    except sqlite3.Error:
+        app.logger.exception('Payment delete failed: id=%s', payment['id'])
+        flash('Action failed. Please try again.', 'error')
+    return redirect(url_for('admin_payments'))
 
 
 @app.route('/member/dashboard')

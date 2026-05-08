@@ -40,6 +40,28 @@
     --plan-yearly-bd:     rgba(16,185,129,.36);
     --plan-yearly-fg:     #6ee7b7;
 
+    /* Payment status palette (Members table — solid pill on each row) */
+    --status-paid-bg:     rgba(16,185,129,.18);
+    --status-paid-bd:     rgba(16,185,129,.42);
+    --status-paid-fg:     #34d399;
+    --status-pending-bg:  rgba(245,158,11,.16);
+    --status-pending-bd:  rgba(245,158,11,.42);
+    --status-pending-fg:  #fcd34d;
+
+    /* Payment method palette (Cash / UPI / Card / Online) */
+    --method-cash-bg:     rgba(148,163,184,.14);
+    --method-cash-bd:     rgba(148,163,184,.36);
+    --method-cash-fg:     #cbd5e1;
+    --method-upi-bg:      rgba(168,85,247,.14);
+    --method-upi-bd:      rgba(168,85,247,.36);
+    --method-upi-fg:      #d8b4fe;
+    --method-card-bg:     rgba(56,189,248,.14);
+    --method-card-bd:     rgba(56,189,248,.36);
+    --method-card-fg:     #7dd3fc;
+    --method-online-bg:   rgba(34,211,238,.14);
+    --method-online-bd:   rgba(34,211,238,.36);
+    --method-online-fg:   #67e8f9;
+
     /* Warning accent (edit / cautionary affordances — soft yellow pill) */
     --warning-bg:         rgba(245,166,35,.15);
     --warning-bg-hover:   rgba(245,166,35,.28);
