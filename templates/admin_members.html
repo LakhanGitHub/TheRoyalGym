@@ -80,6 +80,24 @@
                         <span class="member-daterange-label">Expiry</span>
                         <input type="date" id="memberExpiry" class="member-daterange-input" aria-label="Filter by plan expiry date">
                     </label>
+                    <label class="member-daterange-field" for="memberGender">
+                        <span class="member-daterange-label">Gender</span>
+                        <select id="memberGender" class="member-daterange-input" aria-label="Filter by gender">
+                            <option value="">All</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </label>
+                    <label class="member-daterange-field" for="memberStatus">
+                        <span class="member-daterange-label">Status</span>
+                        <select id="memberStatus" class="member-daterange-input" aria-label="Filter by membership status">
+                            <option value="">All</option>
+                            <option value="active">Active</option>
+                            <option value="expiring_this_month">Expiring this month</option>
+                            <option value="expired">Expired</option>
+                        </select>
+                    </label>
                     <button type="button" id="memberFilterReset" class="member-daterange-reset" title="Clear filters">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M18 6l-12 12"/>
@@ -93,7 +111,7 @@
             </div>
 
             <div class="dash-table-wrap">
-                <table class="dash-table plans-table members-table">
+                <table class="dash-table plans-table members-table" data-today="{{ today_iso }}">
                     <thead>
                         <tr>
                             <th>#</th>
@@ -131,7 +149,8 @@ The Royal Gym Team
                             data-search-name="{{ m.name|lower }}"
                             data-search-mobile="{{ (m.mobile or '')|replace('+','')|replace(' ','')|replace('-','') }}"
                             data-join-date="{{ m.join_date or '' }}"
-                            data-expire-date="{{ m.plan_expire_date or '' }}">
+                            data-expire-date="{{ m.plan_expire_date or '' }}"
+                            data-gender="{{ (m.gender or '')|lower }}">
                             <td>{{ loop.index }}</td>
                             <td>
                                 <div class="plan-name">

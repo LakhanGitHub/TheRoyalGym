@@ -156,22 +156,52 @@ document.querySelectorAll('form[data-confirm]').forEach((form) => {
 
 /* ===== Members list: search + date-range filter ===== */
 (function () {
-    const tbody       = document.querySelector('.members-table tbody');
+    const table       = document.querySelector('.members-table');
+    const tbody       = table?.querySelector('tbody');
     const searchInput = document.getElementById('memberSearch');
     const fromInput   = document.getElementById('memberFrom');
     const toInput     = document.getElementById('memberTo');
     const expiryInput = document.getElementById('memberExpiry');
+    const genderInput = document.getElementById('memberGender');
+    const statusInput = document.getElementById('memberStatus');
     const resetBtn    = document.getElementById('memberFilterReset');
     const emptyRow    = document.getElementById('memberSearchEmpty');
     const dateError   = document.getElementById('memberDateError');
-    if (!tbody || (!searchInput && !fromInput && !toInput && !expiryInput)) return;
+    if (!tbody || (!searchInput && !fromInput && !toInput && !expiryInput && !genderInput && !statusInput)) return;
 
     const rows = Array.from(tbody.querySelectorAll('tr.member-row'));
     if (rows.length === 0) return;
 
     const digitsOnly = (s) => (s || '').replace(/\D/g, '');
-
     const RX_DATE = /^\d{4}-\d{2}-\d{2}$/;
+    const today = table?.dataset.today || '';
+    const currentMonth = today.slice(0, 7);
+
+    // Pre-fill inputs from URL query params (so dashboard tile clicks land
+    // on the Members tab with the right filter already applied).
+    (function applyQueryParams() {
+        const params = new URLSearchParams(window.location.search);
+        const setIf = (el, key) => {
+            if (!el) return;
+            const v = params.get(key);
+            if (v !== null) el.value = v;
+        };
+        setIf(searchInput, 'q');
+        setIf(fromInput,   'from');
+        setIf(toInput,     'to');
+        if (expiryInput) {
+            const v = params.get('expiry');
+            if (v !== null && RX_DATE.test(v)) expiryInput.value = v;
+        }
+        if (genderInput) {
+            const v = (params.get('gender') || '').toLowerCase();
+            if (['male', 'female', 'other'].includes(v)) genderInput.value = v;
+        }
+        if (statusInput) {
+            const v = params.get('status') || '';
+            if (['active', 'expiring_this_month', 'expired'].includes(v)) statusInput.value = v;
+        }
+    })();
 
     function applyFilter() {
         const q          = (searchInput?.value || '').trim().toLowerCase();
@@ -180,6 +210,8 @@ document.querySelectorAll('form[data-confirm]').forEach((form) => {
         const toVal      = toInput?.value     || '';
         const expiryRaw  = expiryInput?.value || '';
         const expiryVal  = RX_DATE.test(expiryRaw) ? expiryRaw : '';
+        const genderVal  = (genderInput?.value || '').toLowerCase();
+        const statusVal  = statusInput?.value || '';
 
         const dateInvalid = !!(fromVal && toVal && fromVal > toVal);
         if (dateError) {
@@ -199,6 +231,7 @@ document.querySelectorAll('form[data-confirm]').forEach((form) => {
             const mobile = row.dataset.searchMobile || '';
             const join   = row.dataset.joinDate     || '';
             const expire = row.dataset.expireDate   || '';
+            const gender = (row.dataset.gender || '').toLowerCase();
 
             let matchesQuery = !q;
             if (q) {
@@ -213,7 +246,19 @@ document.querySelectorAll('form[data-confirm]').forEach((form) => {
             let matchesExpiry = true;
             if (expiryVal && expire !== expiryVal) matchesExpiry = false;
 
-            const show = matchesQuery && inRange && matchesExpiry;
+            let matchesGender = true;
+            if (genderVal && gender !== genderVal) matchesGender = false;
+
+            let matchesStatus = true;
+            if (statusVal === 'active') {
+                matchesStatus = !!expire && !!today && expire >= today;
+            } else if (statusVal === 'expired') {
+                matchesStatus = !!expire && !!today && expire < today;
+            } else if (statusVal === 'expiring_this_month') {
+                matchesStatus = !!expire && !!currentMonth && expire.slice(0, 7) === currentMonth;
+            }
+
+            const show = matchesQuery && inRange && matchesExpiry && matchesGender && matchesStatus;
             row.hidden = !show;
             if (show) visible++;
         });
@@ -221,7 +266,7 @@ document.querySelectorAll('form[data-confirm]').forEach((form) => {
         if (emptyRow) emptyRow.hidden = visible > 0 || dateInvalid;
     }
 
-    [searchInput, fromInput, toInput, expiryInput].forEach((el) => {
+    [searchInput, fromInput, toInput, expiryInput, genderInput, statusInput].forEach((el) => {
         if (!el) return;
         el.addEventListener('input',  applyFilter);
         el.addEventListener('change', applyFilter);
@@ -233,12 +278,21 @@ document.querySelectorAll('form[data-confirm]').forEach((form) => {
             if (fromInput)   fromInput.value   = '';
             if (toInput)     toInput.value     = '';
             if (expiryInput) expiryInput.value = '';
+            if (genderInput) genderInput.value = '';
+            if (statusInput) statusInput.value = '';
             if (dateError)   dateError.textContent = '';
             [fromInput, toInput].forEach((el) => el && el.classList.remove('is-invalid'));
+            // Strip filter params from the URL so a reload doesn't re-apply them.
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState({}, '', window.location.pathname);
+            }
             applyFilter();
             if (searchInput) searchInput.focus();
         });
     }
+
+    // Run once on load so any URL-driven filter is applied immediately.
+    applyFilter();
 })();
 
 /* ===== Settings page: name/email filter ===== */

@@ -257,13 +257,57 @@ def update_member_self(member_id, mobile, age, gender, address):
         conn.close()
 
 
-def count_members_registered_today():
+def get_dashboard_metrics():
+    """Return a dict with the 6 admin-dashboard tile counts. All counts
+    exclude members whose role is 'admin'. Uses SQLite's local-time
+    `date('now', 'localtime')` so the values match what the admin sees in
+    their own timezone.
+    """
+    sql = """
+        SELECT
+            SUM(CASE WHEN role <> 'admin' THEN 1 ELSE 0 END)
+                AS total_members,
+            SUM(CASE
+                    WHEN role <> 'admin'
+                     AND join_date IS NOT NULL
+                     AND strftime('%Y-%m', join_date) = strftime('%Y-%m', 'now', 'localtime')
+                    THEN 1 ELSE 0 END)
+                AS month_registrations,
+            SUM(CASE
+                    WHEN role <> 'admin'
+                     AND plan_expire_date IS NOT NULL
+                     AND plan_expire_date >= date('now', 'localtime')
+                    THEN 1 ELSE 0 END)
+                AS active,
+            SUM(CASE
+                    WHEN role <> 'admin'
+                     AND LOWER(gender) = 'male'
+                    THEN 1 ELSE 0 END)
+                AS men,
+            SUM(CASE
+                    WHEN role <> 'admin'
+                     AND LOWER(gender) = 'female'
+                    THEN 1 ELSE 0 END)
+                AS women,
+            SUM(CASE
+                    WHEN role <> 'admin'
+                     AND plan_expire_date IS NOT NULL
+                     AND strftime('%Y-%m', plan_expire_date) = strftime('%Y-%m', 'now', 'localtime')
+                    THEN 1 ELSE 0 END)
+                AS expiring_this_month
+        FROM members
+    """
     conn = get_db()
     try:
-        row = conn.execute(
-            "SELECT COUNT(*) AS c FROM members WHERE date(created_at) = date('now', 'localtime')"
-        ).fetchone()
-        return row['c'] if row else 0
+        row = conn.execute(sql).fetchone()
+        return {
+            'total_members':       row['total_members']       or 0,
+            'month_registrations': row['month_registrations'] or 0,
+            'active':              row['active']              or 0,
+            'men':                 row['men']                 or 0,
+            'women':               row['women']               or 0,
+            'expiring_this_month': row['expiring_this_month'] or 0,
+        }
     finally:
         conn.close()
 

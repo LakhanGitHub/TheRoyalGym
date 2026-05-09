@@ -395,6 +395,10 @@
 }
 
 .dash-tile {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
     position: relative;
     overflow: hidden;
     background: var(--surface);

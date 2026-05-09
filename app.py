@@ -15,7 +15,7 @@ from database.db import (
     init_db, seed_db,
     get_member_by_id, get_all_members,
     get_member_by_email, get_member_by_login, create_enquiry,
-    count_members_registered_today,
+    get_dashboard_metrics,
     update_member_role, update_member_password, delete_member, count_admins,
     get_all_plans, get_plan_by_id, create_plan, update_plan, delete_plan,
     create_member, update_member, update_member_self,
@@ -290,18 +290,20 @@ def terms():
 @app.route('/admin/dashboard')
 @admin_required
 def admin_dashboard():
-    metrics = {
-        'total_members':         len(get_all_members()),
-        'today_registrations':   count_members_registered_today(),
-        'men':                   0,
-        'women':                 0,
-        'active_membership':     0,
-        'subscription_expiring': 0,
-    }
+    today = date.today()
+    month_first = today.replace(day=1).isoformat()
+    if today.month == 12:
+        next_first = today.replace(year=today.year + 1, month=1, day=1)
+    else:
+        next_first = today.replace(month=today.month + 1, day=1)
+    month_last = (next_first - timedelta(days=1)).isoformat()
+
     return render_template(
         'admin_dashboard.html',
         nav_items=ADMIN_NAV_ITEMS,
-        metrics=metrics,
+        metrics=get_dashboard_metrics(),
+        month_first=month_first,
+        month_last=month_last,
         active_tab='Dashboard',
     )
 

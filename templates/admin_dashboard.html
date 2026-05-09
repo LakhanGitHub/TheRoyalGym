@@ -67,10 +67,10 @@
         <section class="dash-tiles" aria-label="Key metrics">
 
             <!-- 1. Total Members (purple) -->
-            <article class="dash-tile is-purple">
+            <a class="dash-tile is-purple" href="{{ url_for('admin_members') }}" aria-label="View all members">
                 <div class="dash-tile-value">{{ metrics.total_members }}</div>
                 <h2 class="dash-tile-label">Total Members</h2>
-                <a class="dash-tile-link" href="#" aria-disabled="true">View</a>
+                <span class="dash-tile-link">View</span>
                 <span class="dash-tile-icon" aria-hidden="true">
                     <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/>
@@ -79,13 +79,13 @@
                         <path d="M21 21v-2a4 4 0 0 0 -3 -3.85"/>
                     </svg>
                 </span>
-            </article>
+            </a>
 
-            <!-- 2. Today Registrations (orange) -->
-            <article class="dash-tile is-orange">
-                <div class="dash-tile-value">{{ metrics.today_registrations }}</div>
-                <h2 class="dash-tile-label">Today Registrations</h2>
-                <a class="dash-tile-link" href="#" aria-disabled="true">View</a>
+            <!-- 2. This Month Registration (orange) -->
+            <a class="dash-tile is-orange" href="{{ url_for('admin_members', **{'from': month_first, 'to': month_last}) }}" aria-label="View members registered this month">
+                <div class="dash-tile-value">{{ metrics.month_registrations }}</div>
+                <h2 class="dash-tile-label">This Month Registration</h2>
+                <span class="dash-tile-link">View</span>
                 <span class="dash-tile-icon" aria-hidden="true">
                     <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="4" y="5" width="16" height="16" rx="2"/>
@@ -96,26 +96,26 @@
                         <path d="M12 14v4"/>
                     </svg>
                 </span>
-            </article>
+            </a>
 
-            <!-- 3. Active Membership (purple) -->
-            <article class="dash-tile is-purple">
-                <div class="dash-tile-value">{{ metrics.active_membership }}</div>
-                <h2 class="dash-tile-label">Active Membership</h2>
-                <a class="dash-tile-link" href="#" aria-disabled="true">View</a>
+            <!-- 3. Active Members (purple) -->
+            <a class="dash-tile is-purple" href="{{ url_for('admin_members', status='active') }}" aria-label="View active members">
+                <div class="dash-tile-value">{{ metrics.active }}</div>
+                <h2 class="dash-tile-label">Active Members</h2>
+                <span class="dash-tile-link">View</span>
                 <span class="dash-tile-icon" aria-hidden="true">
                     <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 3l8 4.5v4.5c0 4.5 -3 8 -8 9c-5 -1 -8 -4.5 -8 -9v-4.5l8 -4.5z"/>
                         <path d="M9 12l2 2l4 -4"/>
                     </svg>
                 </span>
-            </article>
+            </a>
 
             <!-- 4. Men (cyan) -->
-            <article class="dash-tile is-cyan">
+            <a class="dash-tile is-cyan" href="{{ url_for('admin_members', gender='male') }}" aria-label="View male members">
                 <div class="dash-tile-value">{{ metrics.men }}</div>
                 <h2 class="dash-tile-label">Men</h2>
-                <a class="dash-tile-link" href="#" aria-disabled="true">View</a>
+                <span class="dash-tile-link">View</span>
                 <span class="dash-tile-icon" aria-hidden="true">
                     <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="10" cy="14" r="5"/>
@@ -124,13 +124,13 @@
                         <path d="M19 5v5"/>
                     </svg>
                 </span>
-            </article>
+            </a>
 
             <!-- 5. Women (pink) -->
-            <article class="dash-tile is-pink">
+            <a class="dash-tile is-pink" href="{{ url_for('admin_members', gender='female') }}" aria-label="View female members">
                 <div class="dash-tile-value">{{ metrics.women }}</div>
                 <h2 class="dash-tile-label">Women</h2>
-                <a class="dash-tile-link" href="#" aria-disabled="true">View</a>
+                <span class="dash-tile-link">View</span>
                 <span class="dash-tile-icon" aria-hidden="true">
                     <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="9" r="5"/>
@@ -138,13 +138,13 @@
                         <path d="M9 18h6"/>
                     </svg>
                 </span>
-            </article>
+            </a>
 
-            <!-- 6. Subscription Expire This Month (orange) -->
-            <article class="dash-tile is-orange">
-                <div class="dash-tile-value">{{ metrics.subscription_expiring }}</div>
-                <h2 class="dash-tile-label">Subscription Expire This Month</h2>
-                <a class="dash-tile-link" href="#" aria-disabled="true">View</a>
+            <!-- 6. Expiring This Month (orange) -->
+            <a class="dash-tile is-orange" href="{{ url_for('admin_members', status='expiring_this_month') }}" aria-label="View members expiring this month">
+                <div class="dash-tile-value">{{ metrics.expiring_this_month }}</div>
+                <h2 class="dash-tile-label">Expiring This Month</h2>
+                <span class="dash-tile-link">View</span>
                 <span class="dash-tile-icon" aria-hidden="true">
                     <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M10 5a2 2 0 0 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6"/>
@@ -153,7 +153,7 @@
                         <path d="M3 6.727a11.05 11.05 0 0 1 2.792 -3.727"/>
                     </svg>
                 </span>
-            </article>
+            </a>
 
         </section>
 
