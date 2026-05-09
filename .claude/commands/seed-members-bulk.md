@@ -87,7 +87,7 @@ Use your own knowledge of common Indian names across regions
 - Assign each member a random plan from the available plans, skewed so
   Monthly / Quarterly are most common and Trial / Yearly are rarer.
 
-## 6. Spread join dates across the last `MONTHS` months
+## 6. Spread join dates across the last `MONTHS` months11111
 
 - Pick `join_date` as a random date within the **last `MONTHS` months**
   from today, formatted as `YYYY-MM-DD`.
