@@ -22,9 +22,11 @@
     --danger:             #c0392b;
     --danger-hover:       #a3301f;
 
-    /* Expiry warning (Members table — bright red pill on current-month expiry) */
+    /* Expiry pills (Members table) — bright red when expired, bright green when active */
     --expiry-bg:          #ef4444;
     --expiry-bd:          #dc2626;
+    --active-bg:          #16a34a;
+    --active-bd:          #15803d;
 
     /* Plan badge palette (Members table — soft tints, dark-theme friendly) */
     --plan-trial-bg:      rgba(59,130,246,.14);

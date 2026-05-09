@@ -77,7 +77,7 @@ def _membership_status(plan_expire_iso):
     if not plan_expire_iso:
         return {
             'label': 'No active plan',
-            'css_class': 'expiry-active',
+            'css_class': 'expiry-none',
             'days_remaining': 0,
             'is_expired': False,
         }
@@ -86,7 +86,7 @@ def _membership_status(plan_expire_iso):
     except ValueError:
         return {
             'label': 'No active plan',
-            'css_class': 'expiry-active',
+            'css_class': 'expiry-none',
             'days_remaining': 0,
             'is_expired': False,
         }
@@ -97,13 +97,6 @@ def _membership_status(plan_expire_iso):
             'css_class': 'expiry-expired',
             'days_remaining': -delta,
             'is_expired': True,
-        }
-    if delta <= 7:
-        return {
-            'label': 'Expiring soon',
-            'css_class': 'expiry-warning',
-            'days_remaining': delta,
-            'is_expired': False,
         }
     return {
         'label': 'Active',
@@ -574,14 +567,12 @@ def admin_plans_delete(plan_id):
 @app.route('/admin/members')
 @admin_required
 def admin_members():
-    today = date.today()
     return render_template(
         'admin_members.html',
         nav_items=ADMIN_NAV_ITEMS,
         members=get_all_members(role='user'),
         active_tab='Members',
-        today_iso=today.isoformat(),
-        current_month=today.strftime('%Y-%m'),
+        today_iso=date.today().isoformat(),
     )
 
 

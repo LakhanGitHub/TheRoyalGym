@@ -422,6 +422,20 @@
 .dash-tile.is-purple:hover { background: var(--tile-purple-hover); }
 .dash-tile.is-orange:hover { background: var(--tile-orange-hover); }
 
+/* Expiring-soon warning state — overrides any per-color tile so the
+   amber "Expiring soon" pill stays visible. */
+.dash-tile.is-warning,
+.dash-tile.is-warning.is-pink,
+.dash-tile.is-warning.is-orange,
+.dash-tile.is-warning.is-cyan,
+.dash-tile.is-warning.is-purple {
+    background: linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%);
+    border-color: transparent;
+}
+.dash-tile.is-warning:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+}
+
 /* Big background icon, top-right, semi-transparent */
 .dash-tile-icon {
     position: absolute;
@@ -1445,23 +1459,27 @@ select.member-daterange-input option {
     transition: var(--t);
 }
 .expiry-active {
-    background: var(--surface-2);
-    border-color: var(--border-color);
-    color: var(--text-secondary);
+    background: var(--active-bg);
+    color: var(--white);
+    font-weight: 700;
+    border-color: var(--active-bd);
 }
-.expiry-warning {
+.expiry-expired {
     background: var(--expiry-bg);
     color: var(--white);
     font-weight: 700;
     border-color: var(--expiry-bd);
 }
-.expiry-expired {
-    background: rgba(192,57,43,.18);
-    color: var(--white);
+.expiry-warning {
+    background: #f59e0b;
+    color: #1a1a1a;
     font-weight: 700;
-    border-color: var(--danger-hover);
-    text-decoration: line-through;
-    text-decoration-color: rgba(255,255,255,.55);
+    border-color: #d97706;
+}
+.expiry-none {
+    background: var(--surface-2);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
 }
 
 /* Native dialog modal (delete confirmation) */

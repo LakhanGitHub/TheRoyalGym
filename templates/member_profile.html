@@ -54,6 +54,7 @@
 
         <!-- Top Summary Tiles -->
         <section class="dash-tiles profile-tiles" aria-label="Membership summary">
+            {% set tile_warn = member.plan_id and not status_meta.is_expired and status_meta.days_remaining <= 7 %}
 
             <!-- 1. Current Plan (cyan) -->
             <article class="dash-tile is-cyan">
@@ -77,7 +78,7 @@
             </article>
 
             <!-- 2. Days Remaining (pink) -->
-            <article class="dash-tile is-pink">
+            <article class="dash-tile is-pink{% if tile_warn %} is-warning{% endif %}">
                 <div class="dash-tile-value">
                     {% if member.plan_id and not status_meta.is_expired %}
                         {{ status_meta.days_remaining }}
@@ -87,7 +88,11 @@
                 </div>
                 <h2 class="dash-tile-label">Days Remaining</h2>
                 <span class="dash-tile-link" aria-disabled="true">
+                    {% if tile_warn %}
+                    <span class="expiry-pill expiry-warning">Expiring soon</span>
+                    {% else %}
                     <span class="expiry-pill {{ status_meta.css_class }}">{{ status_meta.label }}</span>
+                    {% endif %}
                 </span>
                 <span class="dash-tile-icon" aria-hidden="true">
                     <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -124,11 +129,15 @@
             </article>
 
             <!-- 4. Plan Expiry Date (orange) -->
-            <article class="dash-tile is-orange">
+            <article class="dash-tile is-orange{% if tile_warn %} is-warning{% endif %}">
                 <div class="dash-tile-value">{{ member.plan_expire_date or '—' }}</div>
                 <h2 class="dash-tile-label">Plan Expiry Date</h2>
                 <span class="dash-tile-link" aria-disabled="true">
+                    {% if tile_warn %}
+                    <span class="expiry-pill expiry-warning">Expiring soon</span>
+                    {% else %}
                     <span class="expiry-pill {{ status_meta.css_class }}">{{ status_meta.label }}</span>
+                    {% endif %}
                 </span>
                 <span class="dash-tile-icon" aria-hidden="true">
                     <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
