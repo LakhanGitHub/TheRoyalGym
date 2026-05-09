@@ -45,7 +45,7 @@ Then write and run a Python script using Bash that uses `MEMBERS` and
 Use your own knowledge of common Indian names across regions
 (North, South, East, West). For each member:
 
-- **Name**: realistic Indian `<first> <last>` — mix religions/regions
+- **Name**: realistic Indian `<first>` — mix religions/regions
 - **Gender**: roughly balanced — ~70% male, ~30% female. Pick first
   names that match the assigned gender. Store as `'male'` or `'female'`.
 - **Age**: random integer between 18 and 55

@@ -368,3 +368,10 @@ Responsive breakpoints (in the same file, after the new rules):
       `static/css/dashboard.css`, `.claude/specs/02-create-admin-dashboard.md`,
       and (if used) `static/css/style.css` for the new `--admin-hero-text-soft`
       variable. No other paths.
+- [ ] follow the tile order:
+      1-Total Members 
+      2-today Registrations
+      3-Active Membership
+      4-men
+      5-wonmen
+      6-Subscription Expire This Month.
